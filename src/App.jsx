@@ -96,7 +96,7 @@ export default function App() {
   async function fetchPosts() {
     const { data, error } = await supabase
       .from("photos")
-      .select("*, profiles!photos_user_id_fkey(username)")
+      .select("*, profiles!photos_user_id_fkey(username, verified)")
       .order("created_at", { ascending: false })
 
     if (error) { console.log(error); return }
@@ -128,6 +128,7 @@ export default function App() {
       return {
         id: photo.id,
         user: photo.profiles?.username || "unknown",
+        verified: photo.profiles?.verified || false,
         caption: photo.caption,
         category: photo.category,
         image_url: photo.image_url,
@@ -386,6 +387,15 @@ export default function App() {
                     <p onClick={function() { setViewingUser(post.user) }}
                       style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "#c8a95d", marginBottom: "6px", cursor: "pointer" }}>
                       @{post.user.toUpperCase()}
+                      {post.verified && (
+                        <span title="Verified — Council of Photographers" style={{
+                          display: "inline-flex", alignItems: "center", justifyContent: "center",
+                          width: "16px", height: "16px", borderRadius: "50%",
+                          backgroundColor: S.gold, color: S.bg,
+                          fontSize: "9px", fontWeight: "bold", marginLeft: "6px",
+                          verticalAlign: "middle", flexShrink: 0,
+                        }}>✦</span>
+                      )}
                     </p>
                     <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", color: "#c7bcaa", fontWeight: "300", marginBottom: "14px" }}>
                       {post.caption}

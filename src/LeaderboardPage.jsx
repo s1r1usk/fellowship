@@ -111,8 +111,16 @@ export default function LeaderboardPage({ setPage, setViewingUser }) {
                 )}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "13px", color: isTop3 ? S.gold : S.textPrimary, margin: "0 0 2px", letterSpacing: "0.05em" }}>
+                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "13px", color: isTop3 ? S.gold : S.textPrimary, margin: "0 0 2px", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
                   @{leader.username}
+                  {leader.verified && (
+                    <span title="Council of Photographers" style={{
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      width: "14px", height: "14px", borderRadius: "50%",
+                      backgroundColor: S.gold, color: S.bg,
+                      fontSize: "8px", fontWeight: "bold", flexShrink: 0,
+                    }}>✦</span>
+                  )}
                 </p>
                 <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "11px", color: S.textMuted, margin: 0 }}>
                   {rankTitle}

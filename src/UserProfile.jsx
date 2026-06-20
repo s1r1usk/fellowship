@@ -168,6 +168,15 @@ export default function UserProfile({ username, currentUser, setPage, onLogout, 
             )}
             <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "14px", letterSpacing: "2px", color: "#c9a84c", marginBottom: "10px" }}>
               @{profile.username?.toUpperCase()}
+              {profile.verified && (
+                <span title="Council of Photographers" style={{
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  width: "18px", height: "18px", borderRadius: "50%",
+                  backgroundColor: "#c9a84c", color: "#0a0908",
+                  fontSize: "10px", fontWeight: "bold", marginLeft: "8px",
+                  verticalAlign: "middle", flexShrink: 0,
+                }}>✦</span>
+              )}
             </p>
             <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", color: "#a09080", fontWeight: "300", marginBottom: "20px", lineHeight: "1.6" }}>
               {profile.bio || "No bio yet."}
