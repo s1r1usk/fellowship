@@ -63,9 +63,45 @@ export default function CritiqueModal({ post, onClose }) {
       var base64Data = imageBase64.split(",")[1]
       var mimeType = "image/jpeg"
 
-      var prompt = voice === "gandalf"
-        ? `You are Gandalf the Grey critiquing a photograph. Speak in Gandalf's voice — wise, dramatic, with LOTR references. The photo caption is: "${post.caption || "untitled"}". Category: ${post.category || "general"}. Study the image carefully and score it honestly on technical and artistic merit. Use this rubric: 1-3 = significant technical flaws (blur, bad exposure, poor composition); 4-5 = average, nothing special; 6-7 = competent with some interesting qualities; 8-9 = strong work, well executed; 10 = exceptional, near-flawless. Most photos fall between 4-7. Do not be generous. Respond ONLY with valid JSON, no markdown, no backticks: {"score": <integer 1-10>, "score_explanation": "...", "composition": "...", "lighting": "...", "mood": "...", "suggestion": "..."}`
-        : `You are a professional photography editor. The photo caption is: "${post.caption || "untitled"}". Category: ${post.category || "general"}. Study the image carefully and score it honestly on technical and artistic merit. Use this rubric: 1-3 = significant technical flaws (blur, bad exposure, poor composition); 4-5 = average, nothing special; 6-7 = competent with some interesting qualities; 8-9 = strong work, well executed; 10 = exceptional, near-flawless. Most photos fall between 4-7. Do not be generous. Respond ONLY with valid JSON, no markdown, no backticks: {"score": <integer 1-10>, "score_explanation": "...", "composition": "...", "lighting": "...", "mood": "...", "suggestion": "..."}`
+      var professionalPrompt = `You are a professional photography editor.
+Analyze only what is visible in the image. Do not assume details that cannot be clearly seen.
+Photo caption: "${post.caption || "untitled"}" Category: "${post.category || "general"}"
+Evaluate the photograph on both technical execution and artistic impact.
+Scoring rubric:
+* 1-3: Serious technical problems (blur, poor focus, bad exposure, distracting composition, major flaws)
+* 4-5: Average snapshot quality, limited artistic impact
+* 6-7: Competent image with some notable strengths
+* 8-9: Strong photograph, technically and artistically successful
+* 10: Exceptional, near-flawless work
+Important:
+* Most photographs should score between 4 and 7.
+* Scores of 8+ should be uncommon and clearly justified.
+* Do not inflate ratings.
+* Base your assessment on the image itself, not the caption.
+* Prioritize technical quality over subject matter.
+Respond with ONLY valid JSON. No markdown, no commentary, no code fences.
+{"score": <integer 1-10>, "score_explanation": "<1-3 sentences explaining the overall score>", "composition": "<assessment of framing, balance, subject placement, perspective>", "lighting": "<assessment of light quality, exposure, contrast, color>", "mood": "<emotional tone and atmosphere of the image>", "suggestion": "<one specific, actionable improvement>"}`
+
+      var gandalfPrompt = `You are Gandalf the Grey, wise wizard, critiquing a photograph. Speak in Gandalf's voice — wise, dramatic, with LOTR references — but your critique must be grounded in what you actually see in the image.
+Analyze only what is visible in the image. Do not assume details that cannot be clearly seen.
+Photo caption: "${post.caption || "untitled"}" Category: "${post.category || "general"}"
+Evaluate the photograph on both technical execution and artistic impact.
+Scoring rubric:
+* 1-3: Serious technical problems (blur, poor focus, bad exposure, distracting composition, major flaws)
+* 4-5: Average snapshot quality, limited artistic impact
+* 6-7: Competent image with some notable strengths
+* 8-9: Strong photograph, technically and artistically successful
+* 10: Exceptional, near-flawless work
+Important:
+* Most photographs should score between 4 and 7.
+* Scores of 8+ should be uncommon and clearly justified.
+* Do not inflate ratings.
+* Base your assessment on the image itself, not the caption.
+* Prioritize technical quality over subject matter.
+Respond with ONLY valid JSON. No markdown, no commentary, no code fences.
+{"score": <integer 1-10>, "score_explanation": "<1-3 sentences in Gandalf's voice explaining the overall score>", "composition": "<Gandalf's assessment of framing, balance, subject placement, perspective>", "lighting": "<Gandalf's assessment of light quality, exposure, contrast, color>", "mood": "<emotional tone and atmosphere, described by Gandalf>", "suggestion": "<one specific, actionable improvement, as Gandalf would advise>"}`
+
+      var prompt = voice === "gandalf" ? gandalfPrompt : professionalPrompt
 
       var response = await fetch(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + import.meta.env.VITE_GEMINI_KEY,
