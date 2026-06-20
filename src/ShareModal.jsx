@@ -71,16 +71,18 @@ export default function ShareModal({ post, onClose }) {
 
   useEffect(function() {
     setGenerating(true)
+    console.log("ShareModal: building watermark for", post.image_url)
     buildWatermarkedBlob(post.image_url, post.user).then(function(blob) {
+      console.log("ShareModal: blob result", blob)
       if (blob) {
         setWatermarkedBlob(blob)
         setPreviewUrl(URL.createObjectURL(blob))
       } else {
-        // CORS blocked canvas — show original image, share URL only
         setPreviewUrl(post.image_url)
       }
       setGenerating(false)
-    }).catch(function() {
+    }).catch(function(e) {
+      console.error("ShareModal: watermark error", e)
       setGenerating(false)
       setShareError("Couldn't prepare image.")
     })
