@@ -26,6 +26,8 @@ export default function PostPage({ user }) {
         .eq("id", id)
         .maybeSingle()
 
+      console.log("PostPage query result:", { data, error, id })
+
       if (error) { console.error("PostPage query error:", error); setNotFound(true); setLoading(false); return }
       if (!data) { setNotFound(true); setLoading(false); return }
 
