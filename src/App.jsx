@@ -214,6 +214,7 @@ export default function App() {
   }
 
   function handleShare(post) {
+    console.log("handleShare called", post)
     setSharePost(post)
   }
 
