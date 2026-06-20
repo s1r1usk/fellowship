@@ -2,28 +2,46 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { supabase } from "./supabase"
 
-async function generateTags(caption, category) {
+async function fileToBase64(file) {
+  return new Promise(function(resolve, reject) {
+    const reader = new FileReader()
+    reader.onloadend = function() {
+      const base64 = reader.result.split(",")[1]
+      resolve(base64)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+async function generateTags(caption, category, imageFile) {
   const apiKey = import.meta.env.VITE_GEMINI_KEY
   if (!apiKey) return []
 
   const prompt = `You are an expert photography tagger for a cinematic photography platform called "The Fellowship" (Lord of the Rings themed).
 
-Given the following photo details:
+Analyze this photo carefully. Also consider:
 Caption: "${caption}"
 Category: "${category}"
 
-Generate exactly 5 short, relevant photography tags. Tags should relate to the subject, mood, technique, or visual style. Keep each tag 1-2 words, lowercase, no # symbol.
+Generate exactly 5 short, relevant photography tags based on what you actually SEE in the image — subject, mood, lighting, technique, composition, color palette. Keep each tag 1-2 words, lowercase, no # symbol.
 
 Respond ONLY with a JSON array of 5 strings. Example: ["golden hour", "portrait", "bokeh", "moody", "film noir"]`
 
   try {
+    const parts = [{ text: prompt }]
+    if (imageFile) {
+      const base64 = await fileToBase64(imageFile)
+      parts.unshift({ inline_data: { mime_type: imageFile.type || "image/jpeg", data: base64 } })
+    }
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ parts }],
           generationConfig: { temperature: 0.7, maxOutputTokens: 150 },
         }),
       }
@@ -41,17 +59,17 @@ Respond ONLY with a JSON array of 5 strings. Example: ["golden hour", "portrait"
   }
 }
 
-async function detectGear(caption, category) {
+async function detectGear(caption, category, imageFile) {
   const apiKey = import.meta.env.VITE_GEMINI_KEY
   if (!apiKey) return null
 
   const prompt = `You are an expert photography gear analyst for a cinematic platform called "The Fellowship".
 
-Given this photo:
+Look at this photo carefully. Also consider:
 Caption: "${caption}"
 Category: "${category}"
 
-Guess the most likely camera gear used. Be specific but reasonable.
+Based on the actual image — depth of field, bokeh quality, focal compression, noise, dynamic range, color science — guess the most likely camera gear used. Be specific but reasonable.
 
 Respond ONLY with a JSON object with exactly these keys:
 {"body": "camera body name", "lens": "lens focal length and aperture", "settings": "likely ISO, shutter speed, aperture"}
@@ -60,13 +78,19 @@ Example: {"body": "Sony A7III", "lens": "85mm f/1.8", "settings": "ISO 400, 1/50
 No explanation, no markdown, just the JSON object.`
 
   try {
+    const parts = [{ text: prompt }]
+    if (imageFile) {
+      const base64 = await fileToBase64(imageFile)
+      parts.unshift({ inline_data: { mime_type: imageFile.type || "image/jpeg", data: base64 } })
+    }
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ parts }],
           generationConfig: { temperature: 0.6, maxOutputTokens: 120 },
         }),
       }
@@ -177,6 +201,21 @@ export default function Upload({ setPage, user }) {
     setTaggingState("idle")
     setGear(null)
     setGearState("idle")
+    // Trigger AI immediately if caption+category already filled
+    if (caption.trim() && category) {
+      setTimeout(function() {
+        generateTags(caption.trim(), category, selected).then(function(generated) {
+          if (generated.length > 0) { setTags(generated); setTaggingState("done") }
+          else setTaggingState("error")
+        })
+        setTaggingState("generating")
+        detectGear(caption.trim(), category, selected).then(function(detected) {
+          if (detected) { setGear(detected); setGearState("done") }
+          else setGearState("error")
+        })
+        setGearState("generating")
+      }, 0)
+    }
   }
 
   function handleFileInput(e) { handleFile(e.target.files[0]) }
@@ -191,10 +230,10 @@ export default function Upload({ setPage, user }) {
   async function triggerAutoTag(cap, cat) {
     const c = cap ?? caption
     const k = cat ?? category
-    if (!c.trim() || !k) return
+    if (!c.trim() || !k || !file) return
     setTaggingState("generating")
     setTags([])
-    const generated = await generateTags(c.trim(), k)
+    const generated = await generateTags(c.trim(), k, file)
     if (generated.length > 0) { setTags(generated); setTaggingState("done") }
     else setTaggingState("error")
   }
@@ -202,10 +241,10 @@ export default function Upload({ setPage, user }) {
   async function triggerGearDetection(cap, cat) {
     const c = cap ?? caption
     const k = cat ?? category
-    if (!c.trim() || !k) return
+    if (!c.trim() || !k || !file) return
     setGearState("generating")
     setGear(null)
-    const detected = await detectGear(c.trim(), k)
+    const detected = await detectGear(c.trim(), k, file)
     if (detected) { setGear(detected); setGearState("done") }
     else setGearState("error")
   }
@@ -249,7 +288,7 @@ export default function Upload({ setPage, user }) {
       let finalTags = tags
       if (finalTags.length === 0 && caption.trim() && category) {
         setTaggingState("generating")
-        finalTags = await generateTags(caption.trim(), category)
+        finalTags = await generateTags(caption.trim(), category, file)
         setTags(finalTags)
         setTaggingState(finalTags.length > 0 ? "done" : "error")
       }
@@ -257,7 +296,7 @@ export default function Upload({ setPage, user }) {
       let finalGear = gear
       if (!finalGear && caption.trim() && category) {
         setGearState("generating")
-        finalGear = await detectGear(caption.trim(), category)
+        finalGear = await detectGear(caption.trim(), category, file)
         setGear(finalGear)
         setGearState(finalGear ? "done" : "error")
       }

@@ -72,8 +72,19 @@ export default function App() {
       tryFinish()
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(function(event, session) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async function(event, session) {
       setUser(session?.user ?? null)
+      // Create profile on first sign-in (handles email-confirmation flow)
+      if ((event === "SIGNED_IN" || event === "USER_UPDATED") && session?.user) {
+        const username = session.user.user_metadata?.username
+        if (username) {
+          // Upsert so it's safe to call multiple times
+          await supabase.from("profiles").upsert(
+            { id: session.user.id, username },
+            { onConflict: "id", ignoreDuplicates: true }
+          )
+        }
+      }
     })
 
     return function() { subscription.unsubscribe() }

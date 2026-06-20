@@ -24,17 +24,39 @@ export default function Auth({ onAuth }) {
     setLoading(true)
     setError(null)
     if (!username.trim()) { setError("Username is required"); setLoading(false); return }
+    if (password.length < 6) { setError("Password must be at least 6 characters"); setLoading(false); return }
 
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    // Check username availability first
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("username", username.trim().toLowerCase())
+      .maybeSingle()
+
+    if (existing) { setError("Username already taken — choose another"); setLoading(false); return }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username: username.trim().toLowerCase() }
+      }
+    })
     if (error) { setError(error.message); setLoading(false); return }
 
-    if (data.user) {
+    // If email confirmation is disabled (auto-confirmed), create profile immediately
+    if (data.user && data.session) {
       const { error: profileError } = await supabase.from("profiles").insert({
         id: data.user.id,
-        username: username.trim().toLowerCase()
+        username: username.trim().toLowerCase(),
       })
-      if (profileError) setError(profileError.message)
-      else setMessage("Check your email to confirm your account!")
+      if (profileError && profileError.code !== "23505") {
+        setError(profileError.message)
+      }
+      // onAuth will be called by the auth state change listener in App.jsx
+    } else {
+      // Email confirmation required — profile will be created on first confirmed login
+      setMessage("Check your email to confirm your account, then sign in!")
     }
     setLoading(false)
   }
