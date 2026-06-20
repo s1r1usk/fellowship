@@ -14,19 +14,27 @@ async function fileToBase64(file) {
   })
 }
 
-async function generateTags(caption, category, imageFile) {
+// Single Gemini call returns both tags and gear to avoid 429 rate limits
+async function analyzePhoto(caption, category, imageFile) {
   const apiKey = import.meta.env.VITE_GEMINI_KEY
-  if (!apiKey) return []
+  if (!apiKey) return { tags: [], gear: null }
 
-  const prompt = `You are an expert photography tagger for a cinematic photography platform called "The Fellowship" (Lord of the Rings themed).
+  const prompt = `You are an expert photography analyst for "The Fellowship", a cinematic photography platform.
 
-Analyze this photo carefully. Also consider:
+Analyze this photo. Also consider:
 Caption: "${caption}"
 Category: "${category}"
 
-Generate exactly 5 short, relevant photography tags based on what you actually SEE in the image — subject, mood, lighting, technique, composition, color palette. Keep each tag 1-2 words, lowercase, no # symbol.
+Return a single JSON object with exactly these two keys:
 
-Respond ONLY with a JSON array of 5 strings. Example: ["golden hour", "portrait", "bokeh", "moody", "film noir"]`
+1. "tags": array of exactly 5 short photography tags based on what you SEE — subject, mood, lighting, technique, composition. Each tag 1-2 words, lowercase, no # symbol.
+
+2. "gear": object with keys "body", "lens", "settings" — your best guess at the camera gear based on depth of field, bokeh, focal compression, noise, dynamic range, color science.
+
+Example response:
+{"tags": ["golden hour", "portrait", "bokeh", "moody", "film noir"], "gear": {"body": "Sony A7III", "lens": "85mm f/1.8", "settings": "ISO 400, 1/500s, f/2.0"}}
+
+Respond ONLY with the JSON object. No markdown, no explanation.`
 
   try {
     const parts = [{ text: prompt }]
@@ -42,56 +50,7 @@ Respond ONLY with a JSON array of 5 strings. Example: ["golden hour", "portrait"
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 150 },
-        }),
-      }
-    )
-    if (!response.ok) throw new Error(`Gemini API error: ${response.status}`)
-    const data = await response.json()
-    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "[]"
-    const clean = raw.replace(/```json|```/g, "").trim()
-    const tags = JSON.parse(clean)
-    if (Array.isArray(tags)) return tags.slice(0, 5).map(function(t) { return String(t).toLowerCase().trim() })
-    return []
-  } catch (err) {
-    console.error("Auto-tagging failed:", err)
-    return []
-  }
-}
-
-async function detectGear(caption, category, imageFile) {
-  const apiKey = import.meta.env.VITE_GEMINI_KEY
-  if (!apiKey) return null
-
-  const prompt = `You are an expert photography gear analyst for a cinematic platform called "The Fellowship".
-
-Look at this photo carefully. Also consider:
-Caption: "${caption}"
-Category: "${category}"
-
-Based on the actual image — depth of field, bokeh quality, focal compression, noise, dynamic range, color science — guess the most likely camera gear used. Be specific but reasonable.
-
-Respond ONLY with a JSON object with exactly these keys:
-{"body": "camera body name", "lens": "lens focal length and aperture", "settings": "likely ISO, shutter speed, aperture"}
-
-Example: {"body": "Sony A7III", "lens": "85mm f/1.8", "settings": "ISO 400, 1/500s, f/2.0"}
-No explanation, no markdown, just the JSON object.`
-
-  try {
-    const parts = [{ text: prompt }]
-    if (imageFile) {
-      const base64 = await fileToBase64(imageFile)
-      parts.unshift({ inline_data: { mime_type: imageFile.type || "image/jpeg", data: base64 } })
-    }
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts }],
-          generationConfig: { temperature: 0.6, maxOutputTokens: 120 },
+          generationConfig: { temperature: 0.7, maxOutputTokens: 300 },
         }),
       }
     )
@@ -99,12 +58,13 @@ No explanation, no markdown, just the JSON object.`
     const data = await response.json()
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}"
     const clean = raw.replace(/```json|```/g, "").trim()
-    const gear = JSON.parse(clean)
-    if (gear.body && gear.lens && gear.settings) return gear
-    return null
+    const result = JSON.parse(clean)
+    const tags = Array.isArray(result.tags) ? result.tags.slice(0, 5).map(t => String(t).toLowerCase().trim()) : []
+    const gear = (result.gear?.body && result.gear?.lens && result.gear?.settings) ? result.gear : null
+    return { tags, gear }
   } catch (err) {
-    console.error("Gear detection failed:", err)
-    return null
+    console.error("AI analysis failed:", err)
+    return { tags: [], gear: null }
   }
 }
 
@@ -201,20 +161,13 @@ export default function Upload({ setPage, user }) {
     setTaggingState("idle")
     setGear(null)
     setGearState("idle")
-    // Run sequentially to avoid Gemini rate limits
     if (caption.trim() && category) {
       setTimeout(async function() {
         setTaggingState("generating")
-        const generated = await generateTags(caption.trim(), category, selected)
-        if (generated.length > 0) { setTags(generated); setTaggingState("done") }
-        else setTaggingState("error")
-
-        await new Promise(r => setTimeout(r, 1000))
-
         setGearState("generating")
-        const detected = await detectGear(caption.trim(), category, selected)
-        if (detected) { setGear(detected); setGearState("done") }
-        else setGearState("error")
+        const { tags: t, gear: g } = await analyzePhoto(caption.trim(), category, selected)
+        setTags(t); setTaggingState(t.length > 0 ? "done" : "error")
+        setGear(g); setGearState(g ? "done" : "error")
       }, 0)
     }
   }
@@ -228,48 +181,27 @@ export default function Upload({ setPage, user }) {
     if (dropped && dropped.type.startsWith("image/")) handleFile(dropped)
   }
 
-  async function triggerAutoTag(cap, cat) {
+  async function triggerAI(cap, cat) {
     const c = cap ?? caption
     const k = cat ?? category
     if (!c.trim() || !k || !file) return
     setTaggingState("generating")
-    setTags([])
-    const generated = await generateTags(c.trim(), k, file)
-    if (generated.length > 0) { setTags(generated); setTaggingState("done") }
-    else setTaggingState("error")
-  }
-
-  async function triggerGearDetection(cap, cat) {
-    const c = cap ?? caption
-    const k = cat ?? category
-    if (!c.trim() || !k || !file) return
     setGearState("generating")
+    setTags([])
     setGear(null)
-    const detected = await detectGear(c.trim(), k, file)
-    if (detected) { setGear(detected); setGearState("done") }
-    else setGearState("error")
+    const { tags: t, gear: g } = await analyzePhoto(c.trim(), k, file)
+    setTags(t); setTaggingState(t.length > 0 ? "done" : "error")
+    setGear(g); setGearState(g ? "done" : "error")
   }
 
   function handleCaptionBlur() {
-    if (caption.trim() && category && file) {
-      triggerAutoTag(caption, category).then(function() {
-        return new Promise(r => setTimeout(r, 1000))
-      }).then(function() {
-        triggerGearDetection(caption, category)
-      })
-    }
+    if (caption.trim() && category && file) triggerAI(caption, category)
   }
 
   function handleCategoryChange(e) {
     const val = e.target.value
     setCategory(val)
-    if (caption.trim() && val && file) {
-      triggerAutoTag(caption, val).then(function() {
-        return new Promise(r => setTimeout(r, 1000))
-      }).then(function() {
-        triggerGearDetection(caption, val)
-      })
-    }
+    if (caption.trim() && val && file) triggerAI(caption, val)
   }
 
   async function handleSubmit(e) {
@@ -293,19 +225,15 @@ export default function Upload({ setPage, user }) {
       if (!imageUrl) throw new Error("Could not retrieve image URL.")
 
       let finalTags = tags
-      if (finalTags.length === 0 && caption.trim() && category) {
-        setTaggingState("generating")
-        finalTags = await generateTags(caption.trim(), category, file)
-        setTags(finalTags)
-        setTaggingState(finalTags.length > 0 ? "done" : "error")
-      }
-
       let finalGear = gear
-      if (!finalGear && caption.trim() && category) {
+      if ((finalTags.length === 0 || !finalGear) && caption.trim() && category) {
+        setTaggingState("generating")
         setGearState("generating")
-        finalGear = await detectGear(caption.trim(), category, file)
-        setGear(finalGear)
-        setGearState(finalGear ? "done" : "error")
+        const { tags: t, gear: g } = await analyzePhoto(caption.trim(), category, file)
+        finalTags = t.length > 0 ? t : finalTags
+        finalGear = g ?? finalGear
+        setTags(finalTags); setTaggingState(finalTags.length > 0 ? "done" : "error")
+        setGear(finalGear); setGearState(finalGear ? "done" : "error")
       }
 
       const { error: insertErr } = await supabase.from("photos").insert({
