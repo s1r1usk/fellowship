@@ -305,7 +305,6 @@ export default function App() {
       {sharePost && (
         <ShareModal post={sharePost} onClose={function() { setSharePost(null) }} />
       )}
-      )}
 
       {critiquePost && (
         <CritiqueModal post={critiquePost} onClose={function() { setCritiquePost(null) }} />
