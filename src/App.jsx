@@ -13,6 +13,7 @@ import Profile from "./Profile"
 import UserProfile from "./UserProfile"
 import ExplorePage from "./ExplorePage"
 import LikesModal from "./LikesModal"
+import ShareModal from "./ShareModal"
 
 const CATEGORIES = ["ALL", "LANDSCAPE", "PORTRAIT", "ABSTRACT", "STREET", "MACRO", "ASTROPHOTOGRAPHY", "ARCHITECTURE", "WILDLIFE"]
 
@@ -32,6 +33,7 @@ export default function App() {
   const [openGear, setOpenGear] = useState({})
   const [viewingUser, setViewingUser] = useState(null)
   const [likesModal, setLikesModal] = useState(null)
+  const [sharePost, setSharePost] = useState(null)
   const [critiquePost, setCritiquePost] = useState(null)
   const [profile, setProfile] = useState(null)
 
@@ -211,26 +213,8 @@ export default function App() {
     }
   }
 
-  async function handleShare(post) {
-    const shareText = "Hey, check out this post by @" + post.user + " on The Fellowship!\n\n\"" + post.caption + "\""
-    try {
-      const response = await fetch(post.image_url)
-      const blob = await response.blob()
-      const file = new File([blob], "fellowship-photo.jpg", { type: blob.type })
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ text: shareText, files: [file] })
-      } else if (navigator.share) {
-        await navigator.share({ text: shareText, url: window.location.href })
-      } else {
-        await navigator.clipboard.writeText(shareText + "\n" + window.location.href)
-        alert("Copied to clipboard!")
-      }
-    } catch (err) {
-      if (err.name !== "AbortError") {
-        navigator.clipboard.writeText(shareText)
-        alert("Copied to clipboard!")
-      }
-    }
+  function handleShare(post) {
+    setSharePost(post)
   }
 
   async function handleEditSubmit(editSuggestion) {
@@ -317,6 +301,10 @@ export default function App() {
 
       {likesModal && (
         <LikesModal photoId={likesModal} onClose={function() { setLikesModal(null) }} setViewingUser={setViewingUser} />
+      )}
+      {sharePost && (
+        <ShareModal post={sharePost} onClose={function() { setSharePost(null) }} />
+      )}
       )}
 
       {critiquePost && (
