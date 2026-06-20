@@ -2,72 +2,6 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { supabase } from "./supabase"
 
-async function fileToBase64(file) {
-  return new Promise(function(resolve, reject) {
-    const reader = new FileReader()
-    reader.onloadend = function() {
-      const base64 = reader.result.split(",")[1]
-      resolve(base64)
-    }
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
-
-// Single Gemini call returns both tags and gear to avoid 429 rate limits
-async function analyzePhoto(caption, category, imageFile) {
-  const apiKey = import.meta.env.VITE_GEMINI_KEY
-  if (!apiKey) return { tags: [], gear: null }
-
-  const prompt = `You are an expert photography analyst for "The Fellowship", a cinematic photography platform.
-
-Analyze this photo. Also consider:
-Caption: "${caption}"
-Category: "${category}"
-
-Return a single JSON object with exactly these two keys:
-
-1. "tags": array of exactly 5 short photography tags based on what you SEE — subject, mood, lighting, technique, composition. Each tag 1-2 words, lowercase, no # symbol.
-
-2. "gear": object with keys "body", "lens", "settings" — your best guess at the camera gear based on depth of field, bokeh, focal compression, noise, dynamic range, color science.
-
-Example response:
-{"tags": ["golden hour", "portrait", "bokeh", "moody", "film noir"], "gear": {"body": "Sony A7III", "lens": "85mm f/1.8", "settings": "ISO 400, 1/500s, f/2.0"}}
-
-Respond ONLY with the JSON object. No markdown, no explanation.`
-
-  try {
-    const parts = [{ text: prompt }]
-    if (imageFile) {
-      const base64 = await fileToBase64(imageFile)
-      parts.unshift({ inline_data: { mime_type: imageFile.type || "image/jpeg", data: base64 } })
-    }
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 300 },
-        }),
-      }
-    )
-    if (!response.ok) throw new Error(`Gemini API error: ${response.status}`)
-    const data = await response.json()
-    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}"
-    const clean = raw.replace(/```json|```/g, "").trim()
-    const result = JSON.parse(clean)
-    const tags = Array.isArray(result.tags) ? result.tags.slice(0, 5).map(t => String(t).toLowerCase().trim()) : []
-    const gear = (result.gear?.body && result.gear?.lens && result.gear?.settings) ? result.gear : null
-    return { tags, gear }
-  } catch (err) {
-    console.error("AI analysis failed:", err)
-    return { tags: [], gear: null }
-  }
-}
-
 const CATEGORIES = [
   "Landscape", "Portrait", "Street", "Wildlife", "Architecture",
   "Astrophotography", "Macro", "Travel", "Abstract", "Documentary",
@@ -77,39 +11,6 @@ const S = {
   bg: "#0a0908", surface: "#141210", border: "#2a2520",
   gold: "#c9a84c", blue: "#4c7ea8", red: "#c44d2e",
   textPrimary: "#e8dcc8", textMuted: "#7a6e62",
-}
-
-function TagChip({ tag, index }) {
-  return (
-    <motion.span
-      initial={{ opacity: 0, scale: 0.8, y: 4 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ delay: index * 0.07, duration: 0.25 }}
-      style={{
-        display: "inline-flex", alignItems: "center", gap: "4px",
-        padding: "3px 10px", borderRadius: "2px",
-        border: `1px solid ${S.gold}44`, backgroundColor: `${S.gold}12`,
-        color: S.gold, fontFamily: "'DM Mono', monospace",
-        fontSize: "11px", letterSpacing: "0.04em", whiteSpace: "nowrap",
-      }}
-    >
-      <span style={{ opacity: 0.5 }}>#</span>{tag}
-    </motion.span>
-  )
-}
-
-function Spinner({ color }) {
-  return (
-    <motion.span
-      animate={{ rotate: 360 }}
-      transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
-      style={{
-        width: "12px", height: "12px", borderRadius: "50%",
-        border: `2px solid ${color}44`, borderTop: `2px solid ${color}`,
-        display: "inline-block",
-      }}
-    />
-  )
 }
 
 function Field({ label, children }) {
@@ -143,10 +44,6 @@ export default function Upload({ setPage, user }) {
   const [category, setCategory] = useState("")
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
-  const [tags, setTags] = useState([])
-  const [taggingState, setTaggingState] = useState("idle")
-  const [gear, setGear] = useState(null)
-  const [gearState, setGearState] = useState("idle")
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
   const [dragOver, setDragOver] = useState(false)
@@ -157,19 +54,6 @@ export default function Upload({ setPage, user }) {
     const reader = new FileReader()
     reader.onloadend = function() { setPreview(reader.result) }
     reader.readAsDataURL(selected)
-    setTags([])
-    setTaggingState("idle")
-    setGear(null)
-    setGearState("idle")
-    if (caption.trim() && category) {
-      setTimeout(async function() {
-        setTaggingState("generating")
-        setGearState("generating")
-        const { tags: t, gear: g } = await analyzePhoto(caption.trim(), category, selected)
-        setTags(t); setTaggingState(t.length > 0 ? "done" : "error")
-        setGear(g); setGearState(g ? "done" : "error")
-      }, 0)
-    }
   }
 
   function handleFileInput(e) { handleFile(e.target.files[0]) }
@@ -179,29 +63,6 @@ export default function Upload({ setPage, user }) {
     setDragOver(false)
     const dropped = e.dataTransfer.files[0]
     if (dropped && dropped.type.startsWith("image/")) handleFile(dropped)
-  }
-
-  async function triggerAI(cap, cat) {
-    const c = cap ?? caption
-    const k = cat ?? category
-    if (!c.trim() || !k || !file) return
-    setTaggingState("generating")
-    setGearState("generating")
-    setTags([])
-    setGear(null)
-    const { tags: t, gear: g } = await analyzePhoto(c.trim(), k, file)
-    setTags(t); setTaggingState(t.length > 0 ? "done" : "error")
-    setGear(g); setGearState(g ? "done" : "error")
-  }
-
-  function handleCaptionBlur() {
-    if (caption.trim() && category && file) triggerAI(caption, category)
-  }
-
-  function handleCategoryChange(e) {
-    const val = e.target.value
-    setCategory(val)
-    if (caption.trim() && val && file) triggerAI(caption, val)
   }
 
   async function handleSubmit(e) {
@@ -224,25 +85,13 @@ export default function Upload({ setPage, user }) {
       const imageUrl = urlData?.publicUrl
       if (!imageUrl) throw new Error("Could not retrieve image URL.")
 
-      let finalTags = tags
-      let finalGear = gear
-      if ((finalTags.length === 0 || !finalGear) && caption.trim() && category) {
-        setTaggingState("generating")
-        setGearState("generating")
-        const { tags: t, gear: g } = await analyzePhoto(caption.trim(), category, file)
-        finalTags = t.length > 0 ? t : finalTags
-        finalGear = g ?? finalGear
-        setTags(finalTags); setTaggingState(finalTags.length > 0 ? "done" : "error")
-        setGear(finalGear); setGearState(finalGear ? "done" : "error")
-      }
-
       const { error: insertErr } = await supabase.from("photos").insert({
         user_id: user.id,
         caption: caption.trim(),
         category,
         image_url: imageUrl,
-        tags: finalTags,
-        gear: finalGear,
+        tags: [],
+        gear: null,
       })
       if (insertErr) throw insertErr
 
@@ -317,7 +166,7 @@ export default function Upload({ setPage, user }) {
         </Field>
 
         <Field label="Category">
-          <select value={category} onChange={handleCategoryChange} required
+          <select value={category} onChange={function(e) { setCategory(e.target.value) }} required
             style={{
               ...inputStyle(), appearance: "none", cursor: "pointer",
               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
@@ -330,69 +179,9 @@ export default function Upload({ setPage, user }) {
 
         <Field label="Caption">
           <textarea value={caption} onChange={function(e) { setCaption(e.target.value) }}
-            onBlur={handleCaptionBlur}
-            placeholder="Describe the scene — AI will divine your tags and gear…"
+            placeholder="Describe the scene…"
             rows={4} style={{ ...inputStyle(), resize: "vertical", minHeight: "100px", lineHeight: "1.6" }} />
         </Field>
-
-        {/* Auto-tag section */}
-        <AnimatePresence>
-          {(taggingState !== "idle" || tags.length > 0) && (
-            <motion.div key="tag-section" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }} style={{ overflow: "hidden" }}>
-              <div style={{ border: `1px solid ${S.border}`, borderRadius: "4px", backgroundColor: S.surface, padding: "16px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: tags.length > 0 ? "12px" : "0" }}>
-                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "0.15em", color: S.gold, textTransform: "uppercase", opacity: 0.8 }}>AI Tags</span>
-                  {taggingState === "generating" && <Spinner color={S.blue} />}
-                  {taggingState === "done" && <span style={{ color: S.gold, fontFamily: "'DM Mono', monospace", fontSize: "11px" }}>✦ Tags bound</span>}
-                  {taggingState === "error" && <span style={{ color: S.red, fontFamily: "'DM Mono', monospace", fontSize: "11px" }}>✕ Failed</span>}
-                </div>
-                {tags.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                    {tags.map(function(tag, i) { return <TagChip key={tag} tag={tag} index={i} /> })}
-                  </div>
-                )}
-                {taggingState === "done" && (
-                  <button type="button" onClick={function() { triggerAutoTag(caption, category) }}
-                    style={{ marginTop: "12px", background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "0.1em", color: S.textMuted, textTransform: "uppercase", padding: "4px 0", opacity: 0.7 }}>
-                    ↺ Regenerate
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Gear detection section */}
-        <AnimatePresence>
-          {(gearState !== "idle" || gear) && (
-            <motion.div key="gear-section" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }} style={{ overflow: "hidden" }}>
-              <div style={{ border: `1px solid ${S.blue}33`, borderRadius: "4px", backgroundColor: S.surface, padding: "16px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: gear ? "12px" : "0" }}>
-                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "0.15em", color: S.blue, textTransform: "uppercase", opacity: 0.8 }}>⚙ Gear Detected</span>
-                  {gearState === "generating" && <Spinner color={S.blue} />}
-                  {gearState === "done" && <span style={{ color: S.blue, fontFamily: "'DM Mono', monospace", fontSize: "11px" }}>✦ Identified</span>}
-                  {gearState === "error" && <span style={{ color: S.red, fontFamily: "'DM Mono', monospace", fontSize: "11px" }}>✕ Failed</span>}
-                </div>
-                {gear && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    {[
-                      { label: "BODY", value: gear.body },
-                      { label: "LENS", value: gear.lens },
-                      { label: "SETTINGS", value: gear.settings },
-                    ].map(function(row) {
-                      return (
-                        <div key={row.label} style={{ display: "flex", gap: "12px", alignItems: "baseline" }}>
-                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "0.15em", color: S.blue, opacity: 0.7, minWidth: "56px" }}>{row.label}</span>
-                          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "12px", color: S.textPrimary, opacity: 0.85 }}>{row.value}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         <AnimatePresence>
           {error && (
