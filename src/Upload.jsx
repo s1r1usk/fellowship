@@ -201,19 +201,20 @@ export default function Upload({ setPage, user }) {
     setTaggingState("idle")
     setGear(null)
     setGearState("idle")
-    // Trigger AI immediately if caption+category already filled
+    // Run sequentially to avoid Gemini rate limits
     if (caption.trim() && category) {
-      setTimeout(function() {
-        generateTags(caption.trim(), category, selected).then(function(generated) {
-          if (generated.length > 0) { setTags(generated); setTaggingState("done") }
-          else setTaggingState("error")
-        })
+      setTimeout(async function() {
         setTaggingState("generating")
-        detectGear(caption.trim(), category, selected).then(function(detected) {
-          if (detected) { setGear(detected); setGearState("done") }
-          else setGearState("error")
-        })
+        const generated = await generateTags(caption.trim(), category, selected)
+        if (generated.length > 0) { setTags(generated); setTaggingState("done") }
+        else setTaggingState("error")
+
+        await new Promise(r => setTimeout(r, 1000))
+
         setGearState("generating")
+        const detected = await detectGear(caption.trim(), category, selected)
+        if (detected) { setGear(detected); setGearState("done") }
+        else setGearState("error")
       }, 0)
     }
   }
@@ -250,18 +251,24 @@ export default function Upload({ setPage, user }) {
   }
 
   function handleCaptionBlur() {
-    if (caption.trim() && category) {
-      triggerAutoTag(caption, category)
-      triggerGearDetection(caption, category)
+    if (caption.trim() && category && file) {
+      triggerAutoTag(caption, category).then(function() {
+        return new Promise(r => setTimeout(r, 1000))
+      }).then(function() {
+        triggerGearDetection(caption, category)
+      })
     }
   }
 
   function handleCategoryChange(e) {
     const val = e.target.value
     setCategory(val)
-    if (caption.trim() && val) {
-      triggerAutoTag(caption, val)
-      triggerGearDetection(caption, val)
+    if (caption.trim() && val && file) {
+      triggerAutoTag(caption, val).then(function() {
+        return new Promise(r => setTimeout(r, 1000))
+      }).then(function() {
+        triggerGearDetection(caption, val)
+      })
     }
   }
 
