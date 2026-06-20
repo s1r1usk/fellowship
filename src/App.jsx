@@ -135,6 +135,7 @@ export default function App() {
         liked: likedIds.has(photo.id),
         comments: [],
         gear: photo.gear || null,
+        exif: photo.exif || null,
       }
     })
 
@@ -417,6 +418,52 @@ export default function App() {
                                     <div key={row.label} style={{ display: "flex", gap: "10px", alignItems: "baseline" }}>
                                       <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "0.15em", color: "#4c7ea8", opacity: 0.7, minWidth: "52px" }}>{row.label}</span>
                                       <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "11px", color: "#a09080" }}>{row.value}</span>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
+
+                    {post.exif && (
+                      <div style={{ marginBottom: "12px" }}>
+                        <button
+                          onClick={function() { setOpenGear({ ...openGear, [`exif_${post.id}`]: !openGear[`exif_${post.id}`] }) }}
+                          style={{
+                            background: "none", border: "1px solid #2a2520", borderRadius: "4px",
+                            cursor: "pointer", fontSize: "10px", fontFamily: "'DM Mono', monospace",
+                            letterSpacing: "2px", color: "#c9a84c", padding: "4px 10px",
+                            display: "flex", alignItems: "center", gap: "6px"
+                          }}>
+                          ✦ EXIF {openGear[`exif_${post.id}`] ? "▲" : "▼"}
+                        </button>
+                        <AnimatePresence>
+                          {openGear[`exif_${post.id}`] && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                              style={{ overflow: "hidden" }}
+                            >
+                              <div style={{ marginTop: "8px", padding: "10px 12px", backgroundColor: "#141210", borderRadius: "4px", border: "1px solid #c9a84c22", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 16px" }}>
+                                {[
+                                  ["Camera", post.exif.Make && post.exif.Model ? `${post.exif.Make} ${post.exif.Model}` : null],
+                                  ["Lens", post.exif.LensModel || null],
+                                  ["Focal Length", post.exif.FocalLength ? `${post.exif.FocalLength}mm` : null],
+                                  ["Aperture", post.exif.FNumber ? `f/${post.exif.FNumber}` : null],
+                                  ["Shutter", post.exif.ExposureTime ? (post.exif.ExposureTime < 1 ? `1/${Math.round(1/post.exif.ExposureTime)}s` : `${post.exif.ExposureTime}s`) : null],
+                                  ["ISO", post.exif.ISO ? `ISO ${post.exif.ISO}` : null],
+                                  ["Resolution", post.exif.ImageWidth && post.exif.ImageHeight ? `${post.exif.ImageWidth} × ${post.exif.ImageHeight}` : null],
+                                  ["Date", post.exif.DateTimeOriginal ? new Date(post.exif.DateTimeOriginal).toLocaleDateString() : null],
+                                ].filter(function(r) { return r[1] }).map(function(r) {
+                                  return (
+                                    <div key={r[0]}>
+                                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", color: "#c9a84c", opacity: 0.6, letterSpacing: "0.1em", display: "block" }}>{r[0].toUpperCase()}</span>
+                                      <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "11px", color: "#a09080" }}>{r[1]}</span>
                                     </div>
                                   )
                                 })}

@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { supabase } from "./supabase"
+import * as exifr from "exifr"
 
 const CATEGORIES = [
   "Landscape", "Portrait", "Street", "Wildlife", "Architecture",
@@ -47,6 +48,9 @@ export default function Upload({ setPage, user }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
   const [dragOver, setDragOver] = useState(false)
+  const [exifData, setExifData] = useState(null)
+
+  const [exifData, setExifData] = useState(null)
 
   function handleFile(selected) {
     if (!selected) return
@@ -54,6 +58,12 @@ export default function Upload({ setPage, user }) {
     const reader = new FileReader()
     reader.onloadend = function() { setPreview(reader.result) }
     reader.readAsDataURL(selected)
+    // Extract EXIF
+    exifr.parse(selected, {
+      pick: ["Make", "Model", "LensModel", "FocalLength", "FNumber", "ExposureTime", "ISO", "DateTimeOriginal", "GPSLatitude", "GPSLongitude", "ExposureProgram", "MeteringMode", "Flash", "WhiteBalance", "ImageWidth", "ImageHeight"]
+    }).then(function(exif) {
+      if (exif) setExifData(exif)
+    }).catch(function() { setExifData(null) })
   }
 
   function handleFileInput(e) { handleFile(e.target.files[0]) }
@@ -92,6 +102,8 @@ export default function Upload({ setPage, user }) {
         image_url: imageUrl,
         tags: [],
         gear: null,
+        exif: exifData || null,
+        exif: exifData || null,
       })
       if (insertErr) throw insertErr
 
@@ -160,6 +172,31 @@ export default function Upload({ setPage, user }) {
           )}
         </div>
 
+        {exifData && (
+          <div style={{ padding: "14px 16px", backgroundColor: S.surface, border: `1px solid ${S.border}`, borderRadius: "4px" }}>
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "0.15em", color: S.blue, marginBottom: "10px" }}>⬡ EXIF DETECTED</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 16px" }}>
+              {[
+                exifData.Make && exifData.Model && ["Camera", `${exifData.Make} ${exifData.Model}`],
+                exifData.LensModel && ["Lens", exifData.LensModel],
+                exifData.FocalLength && ["Focal Length", `${exifData.FocalLength}mm`],
+                exifData.FNumber && ["Aperture", `f/${exifData.FNumber}`],
+                exifData.ExposureTime && ["Shutter", exifData.ExposureTime < 1 ? `1/${Math.round(1/exifData.ExposureTime)}s` : `${exifData.ExposureTime}s`],
+                exifData.ISO && ["ISO", exifData.ISO],
+                exifData.ImageWidth && exifData.ImageHeight && ["Resolution", `${exifData.ImageWidth} × ${exifData.ImageHeight}`],
+                exifData.DateTimeOriginal && ["Date", new Date(exifData.DateTimeOriginal).toLocaleDateString()],
+              ].filter(Boolean).map(function(row) {
+                return (
+                  <div key={row[0]}>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "0.12em", color: S.blue, opacity: 0.7 }}>{row[0].toUpperCase()}</span>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "12px", color: S.textPrimary, margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row[1]}</p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         <Field label="Title">
           <input type="text" value={title} onChange={function(e) { setTitle(e.target.value) }}
             placeholder="Name this memory…" required style={inputStyle()} />
@@ -182,6 +219,33 @@ export default function Upload({ setPage, user }) {
             placeholder="Describe the scene…"
             rows={4} style={{ ...inputStyle(), resize: "vertical", minHeight: "100px", lineHeight: "1.6" }} />
         </Field>
+
+        {exifData && (
+          <div style={{ padding: "14px 16px", backgroundColor: "#0d0c0b", border: "1px solid #2a2520", borderRadius: "4px" }}>
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "0.15em", color: "#4c7ea8", marginBottom: "10px" }}>
+              ⚡ EXIF DETECTED
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 16px" }}>
+              {[
+                ["Camera", exifData.Make && exifData.Model ? `${exifData.Make} ${exifData.Model}` : null],
+                ["Lens", exifData.LensModel || null],
+                ["Focal Length", exifData.FocalLength ? `${exifData.FocalLength}mm` : null],
+                ["Aperture", exifData.FNumber ? `f/${exifData.FNumber}` : null],
+                ["Shutter", exifData.ExposureTime ? (exifData.ExposureTime < 1 ? `1/${Math.round(1/exifData.ExposureTime)}s` : `${exifData.ExposureTime}s`) : null],
+                ["ISO", exifData.ISO ? `ISO ${exifData.ISO}` : null],
+                ["Resolution", exifData.ImageWidth && exifData.ImageHeight ? `${exifData.ImageWidth} × ${exifData.ImageHeight}` : null],
+                ["Date", exifData.DateTimeOriginal ? new Date(exifData.DateTimeOriginal).toLocaleDateString() : null],
+              ].filter(function(row) { return row[1] }).map(function(row) {
+                return (
+                  <div key={row[0]}>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", color: "#4c7ea8", opacity: 0.7, letterSpacing: "0.1em", display: "block" }}>{row[0].toUpperCase()}</span>
+                    <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "12px", color: "#e8dcc8" }}>{row[1]}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         <AnimatePresence>
           {error && (
