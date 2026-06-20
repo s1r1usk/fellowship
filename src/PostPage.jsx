@@ -18,13 +18,16 @@ export default function PostPage({ user }) {
 
   useEffect(function() {
     async function load() {
+      setLoading(true)
+
       const { data, error } = await supabase
         .from("photos")
         .select("*, profiles!photos_user_id_fkey(username)")
         .eq("id", id)
-        .single()
+        .maybeSingle()
 
-      if (error || !data) { setNotFound(true); setLoading(false); return }
+      if (error) { console.error("PostPage query error:", error); setNotFound(true); setLoading(false); return }
+      if (!data) { setNotFound(true); setLoading(false); return }
 
       const { data: likeCounts } = await supabase
         .from("likes").select("photo_id").eq("photo_id", id)
@@ -32,7 +35,7 @@ export default function PostPage({ user }) {
       let liked = false
       if (user) {
         const { data: userLike } = await supabase
-          .from("likes").select("photo_id").eq("photo_id", id).eq("user_id", user.id).single()
+          .from("likes").select("photo_id").eq("photo_id", id).eq("user_id", user.id).maybeSingle()
         liked = !!userLike
       }
 
