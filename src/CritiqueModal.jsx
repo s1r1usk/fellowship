@@ -64,8 +64,8 @@ export default function CritiqueModal({ post, onClose }) {
       var mimeType = "image/jpeg"
 
       var prompt = voice === "gandalf"
-        ? `You are Gandalf the Grey critiquing a photograph. Speak in Gandalf's voice — wise, dramatic, with LOTR references. The photo caption is: "${post.caption || "untitled"}". Category: ${post.category || "general"}. Give a score out of 10. Respond ONLY with valid JSON, no markdown, no backticks: {"score": 7, "score_explanation": "...", "composition": "...", "lighting": "...", "mood": "...", "suggestion": "..."}`
-        : `You are a professional photography editor. The photo caption is: "${post.caption || "untitled"}". Category: ${post.category || "general"}. Give a score out of 10. Respond ONLY with valid JSON, no markdown, no backticks: {"score": 7, "score_explanation": "...", "composition": "...", "lighting": "...", "mood": "...", "suggestion": "..."}`
+        ? `You are Gandalf the Grey critiquing a photograph. Speak in Gandalf's voice — wise, dramatic, with LOTR references. The photo caption is: "${post.caption || "untitled"}". Category: ${post.category || "general"}. Score honestly based on what you see — scores should vary widely (a poor photo might get 3-5, an average one 6-7, an excellent one 8-10). Respond ONLY with valid JSON, no markdown, no backticks: {"score": <integer 1-10>, "score_explanation": "...", "composition": "...", "lighting": "...", "mood": "...", "suggestion": "..."}`
+        : `You are a professional photography editor. The photo caption is: "${post.caption || "untitled"}". Category: ${post.category || "general"}. Score honestly based on what you see — scores should vary widely (a poor photo might get 3-5, an average one 6-7, an excellent one 8-10). Respond ONLY with valid JSON, no markdown, no backticks: {"score": <integer 1-10>, "score_explanation": "...", "composition": "...", "lighting": "...", "mood": "...", "suggestion": "..."}`
 
       var response = await fetch(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + import.meta.env.VITE_GEMINI_KEY,
