@@ -15,14 +15,10 @@ function getPostUrl(post) {
 }
 
 async function buildWatermarkedBlob(imageUrl, username) {
-  return new Promise(async function(resolve, reject) {
-    try {
-      const response = await fetch(imageUrl)
-      const blob = await response.blob()
-      const bitmapUrl = URL.createObjectURL(blob)
-      const img = new Image()
-      img.crossOrigin = "anonymous"
-      img.onload = function() {
+  return new Promise(function(resolve) {
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    img.onload = function() {
         const canvas = document.createElement("canvas")
         const MAX = 1080
         let w = img.naturalWidth
@@ -37,33 +33,28 @@ async function buildWatermarkedBlob(imageUrl, username) {
         const ctx = canvas.getContext("2d")
         ctx.drawImage(img, 0, 0, w, h)
 
-        // Watermark bar
         const barH = Math.max(36, Math.round(h * 0.055))
         const pad = Math.round(barH * 0.28)
         ctx.fillStyle = "rgba(10, 9, 8, 0.72)"
         ctx.fillRect(0, h - barH, w, barH)
 
-        // App name (left)
         const fontSize = Math.round(barH * 0.42)
-        ctx.font = `${fontSize}px 'DM Sans', sans-serif`
+        ctx.font = `bold ${fontSize}px sans-serif`
         ctx.fillStyle = "#c9a84c"
         ctx.textBaseline = "middle"
         ctx.fillText(APP_NAME, pad, h - barH / 2)
 
-        // URL (right)
         const urlFontSize = Math.round(barH * 0.33)
-        ctx.font = `${urlFontSize}px 'DM Mono', monospace`
+        ctx.font = `${urlFontSize}px monospace`
         ctx.fillStyle = "rgba(201,168,76,0.6)"
         const urlText = "fellowshipphoto.online"
         const urlW = ctx.measureText(urlText).width
         ctx.fillText(urlText, w - urlW - pad, h - barH / 2)
 
-        URL.revokeObjectURL(bitmapUrl)
         canvas.toBlob(function(b) { resolve(b) }, "image/jpeg", 0.92)
-      }
-      img.onerror = reject
-      img.src = bitmapUrl
-    } catch(e) { reject(e) }
+    }
+    img.onerror = function() { resolve(null) }
+    img.src = imageUrl
   })
 }
 
@@ -81,8 +72,13 @@ export default function ShareModal({ post, onClose }) {
   useEffect(function() {
     setGenerating(true)
     buildWatermarkedBlob(post.image_url, post.user).then(function(blob) {
-      setWatermarkedBlob(blob)
-      setPreviewUrl(URL.createObjectURL(blob))
+      if (blob) {
+        setWatermarkedBlob(blob)
+        setPreviewUrl(URL.createObjectURL(blob))
+      } else {
+        // CORS blocked canvas — show original image, share URL only
+        setPreviewUrl(post.image_url)
+      }
       setGenerating(false)
     }).catch(function() {
       setGenerating(false)
