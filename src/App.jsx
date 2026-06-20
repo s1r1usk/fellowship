@@ -256,36 +256,38 @@ export default function App() {
   if (!authChecked) return <LoadingScreen />
   if (!user) return <Auth />
 
+  const shareModalEl = sharePost ? <ShareModal post={sharePost} onClose={function() { setSharePost(null) }} /> : null
+
   if (page === "upload") return (
-    <motion.div key="upload" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.3 }}>
+    <>{shareModalEl}<motion.div key="upload" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.3 }}>
       <Upload setPage={function(p) { setPage(p); if (p === "home") fetchPosts() }} user={user} />
-    </motion.div>
+    </motion.div></>
   )
 
   if (page === "profile") return (
-    <Profile user={user} setPage={setPage} onLogout={handleLogout} />
+    <>{shareModalEl}<Profile user={user} setPage={setPage} onLogout={handleLogout} /></>
   )
 
   if (viewingUser) return (
-    <UserProfile
+    <>{shareModalEl}<UserProfile
       username={viewingUser}
       currentUser={user}
       setPage={function(p) { setPage(p); setViewingUser(null) }}
       onLogout={handleLogout}
-    />
+    /></>
   )
 
   if (page === "explore") return (
-    <ExplorePage
+    <>{shareModalEl}<ExplorePage
       currentUser={user}
       setPage={setPage}
       setViewingUser={setViewingUser}
       onLogout={handleLogout}
-    />
+    /></>
   )
 
   if (categoryPage) return (
-    <CategoryPage
+    <>{shareModalEl}<CategoryPage
       category={categoryPage}
       posts={posts}
       setPage={function(p) { setPage(p); if (p === "home") setCategoryPage(null) }}
@@ -293,7 +295,7 @@ export default function App() {
       onComment={handleComment}
       onShare={handleShare}
       onEditSubmit={handleEditSubmit}
-    />
+    /></>
   )
 
   return (
@@ -303,9 +305,7 @@ export default function App() {
       {likesModal && (
         <LikesModal photoId={likesModal} onClose={function() { setLikesModal(null) }} setViewingUser={setViewingUser} />
       )}
-      {sharePost && (
-        <ShareModal post={sharePost} onClose={function() { setSharePost(null) }} />
-      )}
+      {shareModalEl}
 
       {critiquePost && (
         <CritiqueModal post={critiquePost} onClose={function() { setCritiquePost(null) }} />
