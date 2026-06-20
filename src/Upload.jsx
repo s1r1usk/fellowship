@@ -50,8 +50,6 @@ export default function Upload({ setPage, user }) {
   const [dragOver, setDragOver] = useState(false)
   const [exifData, setExifData] = useState(null)
 
-  const [exifData, setExifData] = useState(null)
-
   function handleFile(selected) {
     if (!selected) return
     setFile(selected)
@@ -102,7 +100,6 @@ export default function Upload({ setPage, user }) {
         image_url: imageUrl,
         tags: [],
         gear: null,
-        exif: exifData || null,
         exif: exifData || null,
       })
       if (insertErr) throw insertErr
