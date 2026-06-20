@@ -10,6 +10,10 @@ const S = {
 const APP_URL = "https://fellowship-nine.vercel.app"
 const APP_NAME = "The Fellowship"
 
+function getPostUrl(post) {
+  return `${APP_URL}/post/${post.id}`
+}
+
 async function buildWatermarkedBlob(imageUrl, username) {
   return new Promise(async function(resolve, reject) {
     try {
@@ -70,8 +74,9 @@ export default function ShareModal({ post, onClose }) {
   const [copied, setCopied] = useState(false)
   const [shareError, setShareError] = useState(null)
 
+  const postUrl = getPostUrl(post)
   const shareText = `@${post.user} shared a photo on ${APP_NAME} — "${post.caption || "untitled"}"`
-  const shareUrl = APP_URL
+  const fullShareText = `${shareText}\n${postUrl}`
 
   useEffect(function() {
     setGenerating(true)
@@ -90,9 +95,9 @@ export default function ShareModal({ post, onClose }) {
     try {
       const file = new File([watermarkedBlob], "fellowship.jpg", { type: "image/jpeg" })
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ title: APP_NAME, text: shareText, files: [file] })
+        await navigator.share({ title: APP_NAME, text: fullShareText, files: [file] })
       } else if (navigator.share) {
-        await navigator.share({ title: APP_NAME, text: shareText, url: shareUrl })
+        await navigator.share({ title: APP_NAME, text: shareText, url: postUrl })
       } else {
         copyLink()
       }
@@ -109,23 +114,22 @@ export default function ShareModal({ post, onClose }) {
   }
 
   function copyLink() {
-    const text = `${shareText}\n${shareUrl}`
-    navigator.clipboard.writeText(text).then(function() {
+    navigator.clipboard.writeText(fullShareText).then(function() {
       setCopied(true)
       setTimeout(function() { setCopied(false) }, 2000)
     })
   }
 
   function shareWhatsApp() {
-    window.open(`https://wa.me/?text=${encodeURIComponent(shareText + "\n" + shareUrl)}`, "_blank")
+    window.open(`https://wa.me/?text=${encodeURIComponent(fullShareText)}`, "_blank")
   }
 
   function shareEmail() {
-    window.open(`mailto:?subject=${encodeURIComponent("Check this out on " + APP_NAME)}&body=${encodeURIComponent(shareText + "\n\n" + shareUrl)}`, "_blank")
+    window.open(`mailto:?subject=${encodeURIComponent("Check this out on " + APP_NAME)}&body=${encodeURIComponent(fullShareText)}`, "_blank")
   }
 
   function shareTwitter() {
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, "_blank")
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(postUrl)}`, "_blank")
   }
 
   const targets = [
