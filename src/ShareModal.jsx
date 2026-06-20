@@ -7,7 +7,7 @@ const S = {
   textPrimary: "#e8dcc8", textMuted: "#7a6e62",
 }
 
-const APP_URL = "https://fellowship-nine.vercel.app"
+const APP_URL = "https://www.fellowshipphoto.online"
 const APP_NAME = "The Fellowship"
 
 function getPostUrl(post) {
@@ -54,7 +54,7 @@ async function buildWatermarkedBlob(imageUrl, username) {
         const urlFontSize = Math.round(barH * 0.33)
         ctx.font = `${urlFontSize}px 'DM Mono', monospace`
         ctx.fillStyle = "rgba(201,168,76,0.6)"
-        const urlText = APP_URL.replace("https://", "")
+        const urlText = "fellowshipphoto.online"
         const urlW = ctx.measureText(urlText).width
         ctx.fillText(urlText, w - urlW - pad, h - barH / 2)
 
