@@ -14,6 +14,7 @@ import UserProfile from "./UserProfile"
 import ExplorePage from "./ExplorePage"
 import LikesModal from "./LikesModal"
 import ShareModal from "./ShareModal"
+import LeaderboardPage from "./LeaderboardPage"
 
 const CATEGORIES = ["ALL", "LANDSCAPE", "PORTRAIT", "ABSTRACT", "STREET", "MACRO", "ASTROPHOTOGRAPHY", "ARCHITECTURE", "WILDLIFE"]
 
@@ -283,6 +284,10 @@ export default function App() {
       setViewingUser={setViewingUser}
       onLogout={handleLogout}
     />
+  )
+
+  if (page === "leaders") return (
+    <LeaderboardPage setPage={setPage} setViewingUser={setViewingUser} />
   )
 
   if (categoryPage) return (
