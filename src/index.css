@@ -1,0 +1,16 @@
+@font-face {
+  font-family: 'RingBearer';
+  src: url('/fonts/RINGM__.ttf');
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0a0908;
+  color: #f0ebe0;
+  font-family: 'DM Sans', sans-serif;
+}
