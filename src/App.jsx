@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react"
-import { Routes, Route } from "react-router-dom"
 import CritiqueModal from "./CritiqueModal"
 import Navbar from "./Navbar"
 import Upload from "./Upload"
@@ -15,7 +14,6 @@ import UserProfile from "./UserProfile"
 import ExplorePage from "./ExplorePage"
 import LikesModal from "./LikesModal"
 import ShareModal from "./ShareModal"
-import PostPage from "./PostPage"
 
 const CATEGORIES = ["ALL", "LANDSCAPE", "PORTRAIT", "ABSTRACT", "STREET", "MACRO", "ASTROPHOTOGRAPHY", "ARCHITECTURE", "WILDLIFE"]
 
@@ -298,9 +296,6 @@ export default function App() {
   )
 
   return (
-    <Routes>
-      <Route path="/post/:id" element={<PostPage user={user} />} />
-      <Route path="*" element={
     <div style={{ background: "linear-gradient(180deg, #1a1714 0%, #161411 100%)", minHeight: "100vh" }}>
       <Navbar setPage={function(p) { setPage(p); setCategoryPage(null); setViewingUser(null) }} onLogout={handleLogout} user={user} />
 
@@ -519,7 +514,5 @@ export default function App() {
         </motion.div>
       </AnimatePresence>
     </div>
-      } />
-    </Routes>
   )
 }
