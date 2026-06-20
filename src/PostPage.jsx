@@ -22,7 +22,7 @@ export default function PostPage({ user }) {
 
       const { data, error } = await supabase
         .from("photos")
-        .select("*, profiles(username)")
+        .select("*, profiles!photos_user_id_fkey(username)")
         .eq("id", id)
         .maybeSingle()
 
