@@ -21,7 +21,7 @@ export default function EditModal({ post, onClose, onSubmit }) {
   }
 
   return (
-    <div style={{
+    <div onClick={onClose} style={{
       position: "fixed",
       inset: 0,
       backgroundColor: "rgba(0,0,0,0.85)",
@@ -32,7 +32,7 @@ export default function EditModal({ post, onClose, onSubmit }) {
       padding: "20px",
       overflow: "auto"
     }}>
-      <div style={{
+      <div onClick={function(e) { e.stopPropagation() }} style={{
         backgroundColor: "#141210",
         border: "1px solid #2a2520",
         borderRadius: "8px",

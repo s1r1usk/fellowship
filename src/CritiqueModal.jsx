@@ -148,12 +148,12 @@ Respond with ONLY valid JSON. No markdown, no commentary, no code fences.
     : "#c9a84c"
 
   return (
-    <div style={{
+    <div onClick={onClose} style={{
       position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.9)",
       zIndex: 300, display: "flex", alignItems: "flex-start", justifyContent: "center",
       padding: "20px", overflowY: "auto"
     }}>
-      <motion.div
+      <motion.div onClick={function(e) { e.stopPropagation() }}
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 24 }}

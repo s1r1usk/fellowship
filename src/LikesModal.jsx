@@ -20,11 +20,11 @@ export default function LikesModal({ photoId, onClose, setViewingUser }) {
   }, [photoId])
 
   return (
-    <div style={{
+    <div onClick={onClose} style={{
       position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.85)",
       zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px"
     }}>
-      <div style={{ backgroundColor: "#141210", border: "1px solid #2a2520", borderRadius: "8px", width: "100%", maxWidth: "400px", maxHeight: "80vh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <div onClick={function(e) { e.stopPropagation() }} style={{ backgroundColor: "#141210", border: "1px solid #2a2520", borderRadius: "8px", width: "100%", maxWidth: "400px", maxHeight: "80vh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
 
         <div style={{ padding: "16px 20px", borderBottom: "1px solid #2a2520", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "#c9a84c" }}>

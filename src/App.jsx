@@ -402,7 +402,7 @@ export default function App() {
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 340px), 1fr))", gap: "16px" }}>
             {filteredPosts.map(function(post) {
               return (
                 <div key={post.id} style={{ backgroundColor: "#211d19", border: "1px solid #3b342d", borderRadius: "8px", width: "100%", overflow: "hidden", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
