@@ -88,9 +88,45 @@ export default function AdminPanel({ user, setPage }) {
   )
 
   if (profile?.username !== ADMIN_USERNAME) return (
-    <div style={{ minHeight: "100vh", backgroundColor: S.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px" }}>
-      <p style={{ fontFamily: "'RingBearer', serif", fontSize: "24px", color: S.red }}>You shall not pass.</p>
-      <button onClick={function() { setPage("home") }} style={{ background: "none", border: `1px solid ${S.border}`, borderRadius: "4px", padding: "10px 24px", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: S.textMuted }}>GO BACK</button>
+    <div style={{ minHeight: "100vh", backgroundColor: S.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0", padding: "24px", textAlign: "center" }}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "0.3em", color: S.red, opacity: 0.7, marginBottom: "24px" }}>⚠ RESTRICTED AREA</p>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          style={{ fontFamily: "'RingBearer', serif", fontSize: "clamp(32px, 8vw, 64px)", color: S.red, margin: "0 0 8px", letterSpacing: "0.05em", lineHeight: 1.1 }}
+        >
+          You shall
+        </motion.p>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.5 }}
+          style={{ fontFamily: "'RingBearer', serif", fontSize: "clamp(32px, 8vw, 64px)", color: S.red, margin: "0 0 48px", letterSpacing: "0.05em", lineHeight: 1.1 }}
+        >
+          not pass.
+        </motion.p>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.1, duration: 0.5 }}
+        >
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "16px", color: S.textMuted, marginBottom: "32px" }}>
+            "I am a servant of the Secret Fire, wielder of the flame of Anor."
+          </p>
+          <button onClick={function() { setPage("home") }}
+            style={{ background: "none", border: `1px solid ${S.border}`, borderRadius: "4px", padding: "12px 28px", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: S.textMuted, transition: "all 0.2s" }}
+            onMouseEnter={function(e) { e.target.style.borderColor = S.gold; e.target.style.color = S.gold }}
+            onMouseLeave={function(e) { e.target.style.borderColor = S.border; e.target.style.color = S.textMuted }}>
+            FLEE TO SAFETY
+          </button>
+        </motion.div>
+      </motion.div>
     </div>
   )
 

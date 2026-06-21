@@ -338,6 +338,12 @@ export default function Profile({ user, setPage, onLogout }) {
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", color: "#a09080", fontWeight: "300", marginBottom: "20px", lineHeight: "1.6" }}>
                   {profile?.bio || "No bio yet."}
                 </p>
+                {profile?.username === "s1r1usk" && (
+                  <button onClick={function() { setPage("admin") }}
+                    style={{ background: "none", border: "1px solid #c44d2e44", borderRadius: "4px", padding: "4px 12px", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "0.15em", color: "#c44d2e", marginBottom: "12px" }}>
+                    ⚙ ADMIN
+                  </button>
+                )}
                 <div style={{ display: "flex", gap: "32px", marginBottom: "20px" }}>
                   <div>
                     <p style={{ fontFamily: "'Playfair Display', serif", fontSize: "22px", color: "#c9a84c", fontWeight: "700" }}>{photos.length}</p>
