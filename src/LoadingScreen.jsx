@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 
 const QUOTES = [
   { text: "Not all those who wander are lost.", source: "The Fellowship of the Ring" },
@@ -15,24 +15,45 @@ const QUOTES = [
   { text: "Short cuts make long delays.", source: "The Fellowship of the Ring" },
 ]
 
-export default function LoadingScreen() {
+function shuffle(arr) {
+  const result = arr.slice()
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[result[i], result[j]] = [result[j], result[i]]
+  }
+  return result
+}
 
-  const [quote, setQuote] = useState(QUOTES[0])
+function freshOrder(avoidFirstIndex) {
+  let order = shuffle(QUOTES.map(function(_, i) { return i }))
+  // don't let the new shuffle start with the quote that was just shown
+  if (avoidFirstIndex !== null && order[0] === avoidFirstIndex && order.length > 1) {
+    const swapAt = 1 + Math.floor(Math.random() * (order.length - 1))
+    ;[order[0], order[swapAt]] = [order[swapAt], order[0]]
+  }
+  return order
+}
+
+export default function LoadingScreen() {
+  const orderRef = useRef(freshOrder(null))
+  const posRef = useRef(0)
+  const [quote, setQuote] = useState(QUOTES[orderRef.current[0]])
   const [visible, setVisible] = useState(true)
-  const [index, setIndex] = useState(0)
 
   useEffect(function() {
     const interval = setInterval(function() {
       setVisible(false)
       setTimeout(function() {
-        setIndex(function(prev) {
-          const next = (prev + 1) % QUOTES.length
-          setQuote(QUOTES[next])
-          return next
-        })
+        posRef.current += 1
+        if (posRef.current >= orderRef.current.length) {
+          const lastIndex = orderRef.current[orderRef.current.length - 1]
+          orderRef.current = freshOrder(lastIndex)
+          posRef.current = 0
+        }
+        setQuote(QUOTES[orderRef.current[posRef.current]])
         setVisible(true)
       }, 600)
-    }, 4000)
+    }, 3200) // was 4000
     return function() { clearInterval(interval) }
   }, [])
 
@@ -47,8 +68,6 @@ export default function LoadingScreen() {
       justifyContent: "center",
       zIndex: 999
     }}>
-
-      {/* Ring Bearer Title */}
       <p style={{
         fontFamily: "'RingBearer', serif",
         fontSize: "18px",
@@ -59,8 +78,6 @@ export default function LoadingScreen() {
       }}>
         The Fellowship
       </p>
-
-      {/* Quote */}
       <div style={{
         maxWidth: "560px",
         textAlign: "center",
@@ -88,8 +105,6 @@ export default function LoadingScreen() {
           — {quote.source.toUpperCase()}
         </p>
       </div>
-
-      {/* Loading dots */}
       <div style={{
         display: "flex",
         gap: "6px",
@@ -108,14 +123,12 @@ export default function LoadingScreen() {
           )
         })}
       </div>
-
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 0.2; transform: scale(1); }
           50% { opacity: 1; transform: scale(1.4); }
         }
       `}</style>
-
     </div>
   )
 }
