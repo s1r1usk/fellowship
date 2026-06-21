@@ -289,6 +289,11 @@ export default function ChallengesPage({ user, setViewingUser, setPage }) {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: S.bg, padding: "60px 24px 80px" }}>
+      <div style={{ maxWidth: "640px", margin: "0 auto" }}>
+      <button onClick={function() { setPage("home") }}
+        style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "0.15em", color: S.textMuted, padding: "0 0 32px", display: "block" }}>
+        ← HOME
+      </button>
       <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }}
         style={{ textAlign: "center", marginBottom: "48px" }}>
         <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "0.2em", color: S.gold, opacity: 0.7, textTransform: "uppercase", marginBottom: "10px" }}>
@@ -430,6 +435,7 @@ export default function ChallengesPage({ user, setViewingUser, setPage }) {
           })}
         </div>
       )}
+      </div>
     </div>
   )
 }
