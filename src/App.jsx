@@ -46,6 +46,8 @@ export default function App() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [editorPost, setEditorPost] = useState(null)
   const [editorSaving, setEditorSaving] = useState(false)
+  const [suggestEditorPost, setSuggestEditorPost] = useState(null)
+  const [suggestEditorSaving, setSuggestEditorSaving] = useState(false)
   const [critiquePost, setCritiquePost] = useState(null)
   const [profile, setProfile] = useState(null)
 
@@ -207,7 +209,7 @@ export default function App() {
 
       if (!error && data) {
         const formatted = data.map(function(c) {
-          return { id: c.id, user: c.profiles?.username || "unknown", text: c.text, isEdit: c.is_edit }
+          return { id: c.id, user: c.profiles?.username || "unknown", text: c.text, isEdit: c.is_edit, edited_image_url: c.edited_image_url || null, editor_username: c.editor_username || null }
         })
         setPosts(posts.map(function(p) {
           if (p.id === id) return { ...p, comments: formatted }
@@ -266,6 +268,45 @@ export default function App() {
       console.error("Editor save failed:", err)
     }
     setEditorSaving(false)
+  }
+
+  async function handleSuggestSave(blob) {
+    if (!suggestEditorPost || !blob) return
+    setSuggestEditorSaving(true)
+    try {
+      const path = `${user.id}/edit_${Date.now()}.jpg`
+      const { error: uploadErr } = await supabase.storage.from("photos").upload(path, blob, { contentType: "image/jpeg" })
+      if (uploadErr) throw uploadErr
+      const { data: urlData } = supabase.storage.from("photos").getPublicUrl(path)
+      const editedUrl = urlData.publicUrl
+
+      const { data: profileData } = await supabase.from("profiles").select("username").eq("id", user.id).single()
+      const editorUsername = profileData?.username || "unknown"
+
+      const { data, error } = await supabase.from("comments").insert({
+        photo_id: suggestEditorPost.id,
+        user_id: user.id,
+        text: `✏ Edit suggestion`,
+        is_edit: true,
+        edited_image_url: editedUrl,
+        editor_username: editorUsername,
+      }).select("*, profiles!comments_user_id_fkey(username)").single()
+
+      if (!error && data) {
+        setPosts(posts.map(function(p) {
+          if (p.id === suggestEditorPost.id) {
+            return { ...p, comments: [...p.comments, { id: data.id, user: editorUsername, text: data.text, isEdit: true, edited_image_url: editedUrl, editor_username: editorUsername }] }
+          }
+          return p
+        }))
+        // Open comments so user sees the suggestion
+        setOpenComments({ ...openComments, [suggestEditorPost.id]: true })
+      }
+      setSuggestEditorPost(null)
+    } catch (err) {
+      console.error("Suggest save failed:", err)
+    }
+    setSuggestEditorSaving(false)
   }
 
   async function handleEditSubmit(editSuggestion) {
@@ -379,7 +420,10 @@ export default function App() {
         <NotificationsPanel user={user} onClose={function() { setShowNotifications(false); setUnreadCount(0) }} setViewingUser={setViewingUser} setPage={setPage} />
       )}
       {editorPost && (
-        <PhotoEditor imageUrl={editorPost.image_url} onSave={handleEditorSave} onClose={function() { setEditorPost(null) }} saving={editorSaving} />
+        <PhotoEditor imageUrl={editorPost.image_url} onSave={handleEditorSave} onClose={function() { setEditorPost(null) }} saving={editorSaving} mode="save" />
+      )}
+      {suggestEditorPost && (
+        <PhotoEditor imageUrl={suggestEditorPost.image_url} onSave={handleSuggestSave} onClose={function() { setSuggestEditorPost(null) }} saving={suggestEditorSaving} mode="suggest" />
       )}
 
       {critiquePost && (
@@ -624,7 +668,7 @@ export default function App() {
                       </button>
 
                       {/* Suggest Edit */}
-                      <button onClick={function() { setEditingPost(post) }} title="Suggest edit"
+                      <button onClick={function() { setSuggestEditorPost(post) }} title="Suggest edit"
                         style={{ background: "none", border: "none", cursor: "pointer", fontSize: "17px", color: "#4a4035", padding: "6px 4px", lineHeight: 1, transition: "color 0.15s, transform 0.1s" }}
                         onMouseEnter={function(e) { e.currentTarget.style.color = "#4c7ea8"; e.currentTarget.style.transform = "scale(1.2)" }}
                         onMouseLeave={function(e) { e.currentTarget.style.color = "#4a4035"; e.currentTarget.style.transform = "scale(1)" }}>
@@ -641,14 +685,53 @@ export default function App() {
                         )}
                         {post.comments.map(function(comment, i) {
                           return (
-                            <div key={i} style={{ borderLeft: "2px solid " + (comment.isEdit ? "#4c7ea8" : "#2a2520"), paddingLeft: "10px", marginBottom: "8px" }}>
+                            <div key={i} style={{ borderLeft: `2px solid ${comment.isEdit ? "#4c7ea8" : "#2a2520"}`, paddingLeft: "10px", marginBottom: "12px" }}>
                               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", color: comment.isEdit ? "#4c7ea8" : "#c8a95d", letterSpacing: "1px" }}>
-                                {comment.isEdit ? "EDIT SUGGESTION — " : ""}@{comment.user.toUpperCase()}
+                                {comment.isEdit ? "✏ EDIT SUGGESTION — " : ""}@{comment.user.toUpperCase()}
                               </span>
-                              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "12px", color: "#c7bcaa", fontWeight: "300" }}>
-                                {comment.text}
-                              </p>
-                              {comment.isEdit && <BeforeAfter postId={post.id} imageUrl={post.image_url} />}
+                              {comment.isEdit && comment.edited_image_url ? (
+                                <div style={{ marginTop: "8px" }}>
+                                  <img src={comment.edited_image_url} alt="Suggested edit"
+                                    style={{ width: "100%", borderRadius: "4px", border: "1px solid #2a2520", display: "block", marginBottom: "8px" }} />
+                                  {post.user === profile?.username && (
+                                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                                      <button
+                                        onClick={async function() {
+                                          const { data: col } = await supabase.from("collections").select("id").eq("user_id", user.id).limit(1).single()
+                                          if (col) {
+                                            await supabase.from("collection_photos").insert({ collection_id: col.id, photo_id: post.id })
+                                            alert("Saved to your first collection!")
+                                          } else {
+                                            alert("Create a collection first from the COLLECTIONS tab.")
+                                          }
+                                        }}
+                                        style={{ padding: "4px 10px", border: "1px solid #2a2520", borderRadius: "3px", background: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "9px", color: "#c9a84c", letterSpacing: "0.1em" }}>
+                                        🔖 SAVE
+                                      </button>
+                                      <button
+                                        onClick={async function() {
+                                          if (!window.confirm(`Replace your photo with @${comment.editor_username}'s edit? This cannot be undone.`)) return
+                                          const credit = `\n✏ edited by @${comment.editor_username}`
+                                          await supabase.from("photos").update({
+                                            image_url: comment.edited_image_url,
+                                            caption: (post.caption || "") + credit,
+                                          }).eq("id", post.id)
+                                          setPosts(posts.map(function(p) {
+                                            if (p.id !== post.id) return p
+                                            return { ...p, image_url: comment.edited_image_url, caption: (p.caption || "") + credit }
+                                          }))
+                                        }}
+                                        style={{ padding: "4px 10px", border: "1px solid #c44d2e44", borderRadius: "3px", background: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "9px", color: "#c44d2e", letterSpacing: "0.1em" }}>
+                                        ↺ REPLACE
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "12px", color: "#c7bcaa", fontWeight: "300" }}>
+                                  {comment.text}
+                                </p>
+                              )}
                             </div>
                           )
                         })}

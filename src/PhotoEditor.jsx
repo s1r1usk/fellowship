@@ -93,7 +93,7 @@ function applyEdits(ctx, img, w, h, edits) {
   }
 }
 
-export default function PhotoEditor({ imageUrl, onSave, onClose, saving }) {
+export default function PhotoEditor({ imageUrl, onSave, onClose, saving, mode = "save" }) {
   const canvasRef = useRef(null)
   const imgRef = useRef(null)
   const [edits, setEdits] = useState(PRESETS[0].values)
@@ -153,14 +153,14 @@ export default function PhotoEditor({ imageUrl, onSave, onClose, saving }) {
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: `1px solid ${S.border}`, flexShrink: 0 }}>
           <div>
-            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "0.2em", color: S.gold, margin: "0 0 2px" }}>PHOTO EDITOR</p>
-            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "13px", color: S.textMuted, margin: 0 }}>Forge your vision</p>
+            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "0.2em", color: S.gold, margin: "0 0 2px" }}>{mode === "suggest" ? "SUGGEST EDIT" : "PHOTO EDITOR"}</p>
+            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "13px", color: S.textMuted, margin: 0 }}>{mode === "suggest" ? "Your edit will appear as a suggestion" : "Forge your vision"}</p>
           </div>
           <div style={{ display: "flex", gap: "8px" }}>
             <button onClick={resetAll} style={{ padding: "7px 14px", border: `1px solid ${S.border}`, borderRadius: "3px", background: "none", color: S.textMuted, fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "0.12em", cursor: "pointer" }}>RESET</button>
             <button onClick={handleSave} disabled={saving || !imgLoaded}
               style={{ padding: "7px 18px", border: `1px solid ${S.gold}`, borderRadius: "3px", backgroundColor: `${S.gold}18`, color: saving ? `${S.gold}66` : S.gold, fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "0.12em", cursor: saving ? "not-allowed" : "pointer" }}>
-              {saving ? "SAVING…" : "✦ SAVE"}
+              {saving ? (mode === "suggest" ? "POSTING…" : "SAVING…") : mode === "suggest" ? "✦ SUGGEST" : "✦ SAVE"}
             </button>
             <button onClick={onClose} style={{ padding: "7px 12px", border: `1px solid ${S.border}`, borderRadius: "3px", background: "none", color: S.textMuted, fontFamily: "'DM Mono', monospace", fontSize: "9px", cursor: "pointer" }}>✕</button>
           </div>
