@@ -396,7 +396,7 @@ export default function App() {
                         <span title="Verified — Council of Photographers" style={{
                           display: "inline-flex", alignItems: "center", justifyContent: "center",
                           width: "16px", height: "16px", borderRadius: "50%",
-                          backgroundColor: S.gold, color: S.bg,
+                          backgroundColor: "#c9a84c", color: "#0a0908",
                           fontSize: "9px", fontWeight: "bold", marginLeft: "6px",
                           verticalAlign: "middle", flexShrink: 0,
                         }}>✦</span>
