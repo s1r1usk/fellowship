@@ -15,6 +15,7 @@ import ExplorePage from "./ExplorePage"
 import LikesModal from "./LikesModal"
 import ShareModal from "./ShareModal"
 import LeaderboardPage from "./LeaderboardPage"
+import ChallengesPage from "./ChallengesPage"
 
 const CATEGORIES = ["ALL", "LANDSCAPE", "PORTRAIT", "ABSTRACT", "STREET", "MACRO", "ASTROPHOTOGRAPHY", "ARCHITECTURE", "WILDLIFE"]
 
@@ -289,6 +290,10 @@ export default function App() {
 
   if (page === "leaders") return (
     <LeaderboardPage setPage={setPage} setViewingUser={setViewingUser} />
+  )
+
+  if (page === "challenges") return (
+    <ChallengesPage user={user} setViewingUser={setViewingUser} setPage={setPage} />
   )
 
   if (categoryPage) return (

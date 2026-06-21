@@ -41,7 +41,7 @@ export default function Navbar({ setPage, user, onLogout }) {
 
         {/* Desktop links */}
         <div style={{ display: "flex", gap: "24px", alignItems: "center" }} className="desktop-nav">
-          {["HOME", "EXPLORE", "LEADERS", "UPLOAD", "PROFILE"].map(function(link) {
+          {["HOME", "EXPLORE", "LEADERS", "CHALLENGES", "UPLOAD", "PROFILE"].map(function(link) {
             return (
               <button
                 key={link}
@@ -114,7 +114,7 @@ export default function Navbar({ setPage, user, onLogout }) {
           flexDirection: "column",
           gap: "16px"
         }}>
-          {["HOME", "EXPLORE", "LEADERS", "UPLOAD", "PROFILE"].map(function(link) {
+          {["HOME", "EXPLORE", "LEADERS", "CHALLENGES", "UPLOAD", "PROFILE"].map(function(link) {
             return (
               <button
                 key={link}
