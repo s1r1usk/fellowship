@@ -546,30 +546,57 @@ export default function App() {
                       </button>
                     )}
 
-                    <div style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
-                      <button onClick={function() { handleLike(post.id) }}
-                        style={{ background: "none", border: "1px solid " + (post.liked ? "#c44d2e" : "#2a2520"), borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontFamily: "'DM Mono', monospace", letterSpacing: "2px", color: post.liked ? "#c44d2e" : "#7a6f5e", padding: "6px 12px" }}>
-                        {post.liked ? "LIKED" : "LIKE"}
+                    <div style={{ display: "flex", gap: "6px", marginBottom: "14px", alignItems: "center" }}>
+                      {/* Like */}
+                      <button onClick={function() { handleLike(post.id) }} title={post.liked ? "Unlike" : "Like"}
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: "18px", color: post.liked ? "#c44d2e" : "#4a4035", padding: "6px 4px", lineHeight: 1, transition: "color 0.15s, transform 0.1s" }}
+                        onMouseEnter={function(e) { e.currentTarget.style.transform = "scale(1.2)" }}
+                        onMouseLeave={function(e) { e.currentTarget.style.transform = "scale(1)" }}>
+                        {post.liked ? "♥" : "♡"}
                       </button>
-                      <button onClick={function() { setLikesModal(post.id) }}
-                        style={{ background: "none", border: "1px solid #2a2520", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontFamily: "'DM Mono', monospace", letterSpacing: "2px", color: "#9a8f80", padding: "6px 8px" }}>
-                        {post.likes} ♥
+                      {/* Like count */}
+                      <button onClick={function() { setLikesModal(post.id) }} title="See likes"
+                        style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "11px", color: "#7a6f5e", padding: "6px 2px", minWidth: "20px" }}>
+                        {post.likes}
                       </button>
-                      <button onClick={function() { toggleComments(post.id) }}
-                        style={{ background: "none", border: "1px solid #2a2520", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontFamily: "'DM Mono', monospace", letterSpacing: "2px", color: "#9a8f80", padding: "6px 12px" }}>
-                        COMMENTS {post.comments.length}
+
+                      <div style={{ width: "1px", height: "18px", backgroundColor: "#2a2520", margin: "0 4px" }} />
+
+                      {/* Comment */}
+                      <button onClick={function() { toggleComments(post.id) }} title="Comments"
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: "17px", color: openComments[post.id] ? "#4c7ea8" : "#4a4035", padding: "6px 4px", lineHeight: 1, transition: "color 0.15s, transform 0.1s" }}
+                        onMouseEnter={function(e) { e.currentTarget.style.transform = "scale(1.2)" }}
+                        onMouseLeave={function(e) { e.currentTarget.style.transform = "scale(1)" }}>
+                        💬
                       </button>
-                      <button onClick={function() { handleShare(post) }}
-                        style={{ background: "none", border: "1px solid #2a2520", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontFamily: "'DM Mono', monospace", letterSpacing: "2px", color: "#9a8f80", padding: "6px 12px" }}>
-                        SHARE
+                      {post.comments.length > 0 && (
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", color: "#7a6f5e" }}>{post.comments.length}</span>
+                      )}
+
+                      <div style={{ width: "1px", height: "18px", backgroundColor: "#2a2520", margin: "0 4px" }} />
+
+                      {/* Share */}
+                      <button onClick={function() { handleShare(post) }} title="Share"
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: "17px", color: "#4a4035", padding: "6px 4px", lineHeight: 1, transition: "color 0.15s, transform 0.1s" }}
+                        onMouseEnter={function(e) { e.currentTarget.style.color = "#9a8f80"; e.currentTarget.style.transform = "scale(1.2)" }}
+                        onMouseLeave={function(e) { e.currentTarget.style.color = "#4a4035"; e.currentTarget.style.transform = "scale(1)" }}>
+                        📤
                       </button>
-                      <button onClick={function() { setSavePost(post) }}
-                        style={{ background: "none", border: "1px solid #2a2520", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontFamily: "'DM Mono', monospace", letterSpacing: "2px", color: "#c9a84c", padding: "6px 12px" }}>
-                        🔖 SAVE
+
+                      {/* Save */}
+                      <button onClick={function() { setSavePost(post) }} title="Save to collection"
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: "17px", color: "#4a4035", padding: "6px 4px", lineHeight: 1, transition: "color 0.15s, transform 0.1s" }}
+                        onMouseEnter={function(e) { e.currentTarget.style.color = "#c9a84c"; e.currentTarget.style.transform = "scale(1.2)" }}
+                        onMouseLeave={function(e) { e.currentTarget.style.color = "#4a4035"; e.currentTarget.style.transform = "scale(1)" }}>
+                        🔖
                       </button>
-                      <button onClick={function() { setEditingPost(post) }}
-                        style={{ background: "none", border: "1px solid #2a2520", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontFamily: "'DM Mono', monospace", letterSpacing: "2px", color: "#4c7ea8", padding: "6px 12px" }}>
-                        SUGGEST EDIT
+
+                      {/* Suggest Edit */}
+                      <button onClick={function() { setEditingPost(post) }} title="Suggest edit"
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: "17px", color: "#4a4035", padding: "6px 4px", lineHeight: 1, transition: "color 0.15s, transform 0.1s" }}
+                        onMouseEnter={function(e) { e.currentTarget.style.color = "#4c7ea8"; e.currentTarget.style.transform = "scale(1.2)" }}
+                        onMouseLeave={function(e) { e.currentTarget.style.color = "#4a4035"; e.currentTarget.style.transform = "scale(1)" }}>
+                        ✏️
                       </button>
                     </div>
 
@@ -594,9 +621,9 @@ export default function App() {
                           )
                         })}
 
-                        <button onClick={function() { setCritiquePost(post) }}
+                        <button onClick={function() { setCritiquePost(post) }} title="AI Critique"
                           style={{ background: "none", border: "1px solid #2a2520", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontFamily: "'DM Mono', monospace", letterSpacing: "2px", color: "#c8a95d", padding: "6px 12px" }}>
-                          AI CRITIQUE
+                          🧙 CRITIQUE
                         </button>
 
                         <div style={{ display: "flex", gap: "6px", marginTop: "10px" }}>

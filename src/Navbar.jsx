@@ -3,37 +3,72 @@ import { useState } from "react"
 export default function Navbar({ setPage, user, onLogout, onNotifications, unreadCount }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const links = ["HOME", "EXPLORE", "LEADERS", "CHALLENGES", "COLLECTIONS", "UPLOAD", "PROFILE"]
+  const primaryLinks = ["HOME", "EXPLORE", "UPLOAD"]
+  const secondaryLinks = ["LEADERS", "CHALLENGES", "COLLECTIONS"]
+
+  function go(link) { setPage(link.toLowerCase()); setMenuOpen(false) }
+
+  const btnStyle = (active) => ({
+    background: "none", border: "none", cursor: "pointer",
+    fontFamily: "'DM Mono', monospace", fontSize: "11px",
+    letterSpacing: "2px", color: active ? "#c9a84c" : "#7a6f5e", padding: "0",
+    transition: "color 0.15s",
+  })
 
   return (
     <nav style={{ position: "fixed", top: 0, left: 0, right: 0, backgroundColor: "#0a0908", borderBottom: "1px solid #2a2520", zIndex: 100 }}>
-      <div style={{ height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px" }}>
+      <div style={{ height: "56px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", maxWidth: "1200px", margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
 
         {/* Logo */}
-        <div onClick={function() { setPage("home"); setMenuOpen(false) }}
-          style={{ fontFamily: "'RingBearer', serif", fontSize: "16px", color: "#c9a84c", letterSpacing: "2px", cursor: "pointer", whiteSpace: "nowrap" }}>
+        <div onClick={function() { go("home") }}
+          style={{ fontFamily: "'RingBearer', serif", fontSize: "15px", color: "#c9a84c", letterSpacing: "2px", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
           The Fellowship
         </div>
 
-        {/* Desktop links */}
-        <div style={{ display: "flex", gap: "20px", alignItems: "center" }} className="desktop-nav">
-          {links.map(function(link) {
+        {/* Desktop */}
+        <div style={{ display: "flex", alignItems: "center", gap: "28px" }} className="desktop-nav">
+          {/* Primary */}
+          {primaryLinks.map(function(link) {
             return (
-              <button key={link} onClick={function() { setPage(link.toLowerCase()) }}
-                style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "#7a6f5e", padding: "0" }}
-                onMouseEnter={function(e) { e.target.style.color = "#c9a84c" }}
-                onMouseLeave={function(e) { e.target.style.color = "#7a6f5e" }}>
+              <button key={link} onClick={function() { go(link) }} style={btnStyle(false)}
+                onMouseEnter={function(e) { e.currentTarget.style.color = "#c9a84c" }}
+                onMouseLeave={function(e) { e.currentTarget.style.color = "#7a6f5e" }}>
                 {link}
               </button>
             )
           })}
 
+          {/* Divider */}
+          <div style={{ width: "1px", height: "16px", backgroundColor: "#2a2520" }} />
+
+          {/* Secondary — smaller */}
+          {secondaryLinks.map(function(link) {
+            return (
+              <button key={link} onClick={function() { go(link) }}
+                style={{ ...btnStyle(false), fontSize: "10px", opacity: 0.7 }}
+                onMouseEnter={function(e) { e.currentTarget.style.color = "#c9a84c"; e.currentTarget.style.opacity = "1" }}
+                onMouseLeave={function(e) { e.currentTarget.style.color = "#7a6f5e"; e.currentTarget.style.opacity = "0.7" }}>
+                {link}
+              </button>
+            )
+          })}
+
+          <div style={{ width: "1px", height: "16px", backgroundColor: "#2a2520" }} />
+
+          {/* Profile */}
+          <button onClick={function() { go("profile") }} style={btnStyle(false)}
+            onMouseEnter={function(e) { e.currentTarget.style.color = "#c9a84c" }}
+            onMouseLeave={function(e) { e.currentTarget.style.color = "#7a6f5e" }}>
+            PROFILE
+          </button>
+
           {/* Bell */}
           {user && (
-            <button onClick={onNotifications} style={{ position: "relative", background: "none", border: "none", cursor: "pointer", fontSize: "16px", padding: "0", lineHeight: 1 }}>
+            <button onClick={onNotifications} title="Notifications"
+              style={{ position: "relative", background: "none", border: "none", cursor: "pointer", fontSize: "16px", padding: "0", lineHeight: 1 }}>
               🔔
               {unreadCount > 0 && (
-                <span style={{ position: "absolute", top: "-4px", right: "-6px", backgroundColor: "#c44d2e", color: "#fff", borderRadius: "50%", width: "16px", height: "16px", fontSize: "9px", fontFamily: "'DM Mono', monospace", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+                <span style={{ position: "absolute", top: "-5px", right: "-7px", backgroundColor: "#c44d2e", color: "#fff", borderRadius: "50%", width: "15px", height: "15px", fontSize: "8px", fontFamily: "'DM Mono', monospace", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
@@ -42,21 +77,21 @@ export default function Navbar({ setPage, user, onLogout, onNotifications, unrea
 
           {user && (
             <button onClick={onLogout}
-              style={{ background: "none", border: "1px solid #2a2520", borderRadius: "4px", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "#7a6f5e", padding: "4px 12px" }}
-              onMouseEnter={function(e) { e.target.style.color = "#c44d2e"; e.target.style.borderColor = "#c44d2e" }}
-              onMouseLeave={function(e) { e.target.style.color = "#7a6f5e"; e.target.style.borderColor = "#2a2520" }}>
-              LOGOUT
+              style={{ background: "none", border: "1px solid #2a2520", borderRadius: "4px", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "2px", color: "#7a6f5e", padding: "4px 10px", transition: "all 0.15s" }}
+              onMouseEnter={function(e) { e.currentTarget.style.color = "#c44d2e"; e.currentTarget.style.borderColor = "#c44d2e" }}
+              onMouseLeave={function(e) { e.currentTarget.style.color = "#7a6f5e"; e.currentTarget.style.borderColor = "#2a2520" }}>
+              OUT
             </button>
           )}
         </div>
 
-        {/* Hamburger */}
-        <div style={{ display: "none", alignItems: "center", gap: "12px" }} className="hamburger-area">
+        {/* Mobile right — bell + hamburger */}
+        <div style={{ display: "none", alignItems: "center", gap: "14px" }} className="mobile-nav">
           {user && (
             <button onClick={onNotifications} style={{ position: "relative", background: "none", border: "none", cursor: "pointer", fontSize: "16px", padding: "0" }}>
               🔔
               {unreadCount > 0 && (
-                <span style={{ position: "absolute", top: "-4px", right: "-6px", backgroundColor: "#c44d2e", color: "#fff", borderRadius: "50%", width: "16px", height: "16px", fontSize: "9px", fontFamily: "'DM Mono', monospace", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ position: "absolute", top: "-5px", right: "-7px", backgroundColor: "#c44d2e", color: "#fff", borderRadius: "50%", width: "15px", height: "15px", fontSize: "8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
@@ -71,10 +106,10 @@ export default function Navbar({ setPage, user, onLogout, onNotifications, unrea
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div style={{ borderTop: "1px solid #2a2520", padding: "16px 20px", display: "flex", flexDirection: "column", gap: "16px" }}>
-          {links.map(function(link) {
+        <div style={{ borderTop: "1px solid #2a2520", padding: "20px", display: "flex", flexDirection: "column", gap: "20px", backgroundColor: "#0a0908" }}>
+          {[...primaryLinks, ...secondaryLinks, "PROFILE"].map(function(link) {
             return (
-              <button key={link} onClick={function() { setPage(link.toLowerCase()); setMenuOpen(false) }}
+              <button key={link} onClick={function() { go(link) }}
                 style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "13px", letterSpacing: "2px", color: "#7a6f5e", padding: "0", textAlign: "left" }}>
                 {link}
               </button>
@@ -90,9 +125,9 @@ export default function Navbar({ setPage, user, onLogout, onNotifications, unrea
       )}
 
       <style>{`
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
           .desktop-nav { display: none !important; }
-          .hamburger-area { display: flex !important; }
+          .mobile-nav { display: flex !important; }
         }
       `}</style>
     </nav>
