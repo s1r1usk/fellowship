@@ -20,6 +20,7 @@ import CollectionsPage from "./CollectionsPage"
 import SaveModal from "./SaveModal"
 import NotificationsPanel from "./NotificationsPanel"
 import AdminPanel from "./AdminPanel"
+import PhotoEditor from "./PhotoEditor"
 
 const CATEGORIES = ["ALL", "LANDSCAPE", "PORTRAIT", "ABSTRACT", "STREET", "MACRO", "ASTROPHOTOGRAPHY", "ARCHITECTURE", "WILDLIFE"]
 
@@ -43,6 +44,8 @@ export default function App() {
   const [savePost, setSavePost] = useState(null)
   const [showNotifications, setShowNotifications] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [editorPost, setEditorPost] = useState(null)
+  const [editorSaving, setEditorSaving] = useState(false)
   const [critiquePost, setCritiquePost] = useState(null)
   const [profile, setProfile] = useState(null)
 
@@ -246,6 +249,25 @@ export default function App() {
     setSharePost(post)
   }
 
+  async function handleEditorSave(blob) {
+    if (!editorPost || !blob) return
+    setEditorSaving(true)
+    try {
+      const ext = "jpg"
+      const path = `${user.id}/${Date.now()}.${ext}`
+      const { error: uploadErr } = await supabase.storage.from("photos").upload(path, blob, { contentType: "image/jpeg" })
+      if (uploadErr) throw uploadErr
+      const { data: urlData } = supabase.storage.from("photos").getPublicUrl(path)
+      const newUrl = urlData.publicUrl
+      await supabase.from("photos").update({ image_url: newUrl }).eq("id", editorPost.id)
+      setPosts(posts.map(function(p) { return p.id === editorPost.id ? { ...p, image_url: newUrl } : p }))
+      setEditorPost(null)
+    } catch (err) {
+      console.error("Editor save failed:", err)
+    }
+    setEditorSaving(false)
+  }
+
   async function handleEditSubmit(editSuggestion) {
     const { data, error } = await supabase.from("comments").insert({
       user_id: user.id,
@@ -355,6 +377,9 @@ export default function App() {
       )}
       {showNotifications && (
         <NotificationsPanel user={user} onClose={function() { setShowNotifications(false); setUnreadCount(0) }} setViewingUser={setViewingUser} setPage={setPage} />
+      )}
+      {editorPost && (
+        <PhotoEditor imageUrl={editorPost.image_url} onSave={handleEditorSave} onClose={function() { setEditorPost(null) }} saving={editorSaving} />
       )}
 
       {critiquePost && (
@@ -534,16 +559,23 @@ export default function App() {
 
                     {/* Delete button */}
                     {post.user === profile?.username && (
-                      <button
-                        onClick={async function() {
-                          if (!window.confirm("Delete this photo?")) return
-                          await supabase.storage.from("photos").remove([user.id + "/" + post.image_url.split("/").pop()])
-                          await supabase.from("photos").delete().eq("id", post.id)
-                          setPosts(posts.filter(function(p) { return p.id !== post.id }))
-                        }}
-                        style={{ background: "none", border: "1px solid #2a2520", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontFamily: "'DM Mono', monospace", letterSpacing: "2px", color: "#c44d2e", padding: "4px 10px", marginBottom: "10px" }}>
-                        DELETE
-                      </button>
+                      <div style={{ display: "flex", gap: "8px", marginBottom: "10px" }}>
+                        <button
+                          onClick={function() { setEditorPost(post) }}
+                          style={{ background: "none", border: "1px solid #2a2520", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontFamily: "'DM Mono', monospace", letterSpacing: "2px", color: "#c9a84c", padding: "4px 10px" }}>
+                          🎨 EDIT
+                        </button>
+                        <button
+                          onClick={async function() {
+                            if (!window.confirm("Delete this photo?")) return
+                            await supabase.storage.from("photos").remove([user.id + "/" + post.image_url.split("/").pop()])
+                            await supabase.from("photos").delete().eq("id", post.id)
+                            setPosts(posts.filter(function(p) { return p.id !== post.id }))
+                          }}
+                          style={{ background: "none", border: "1px solid #2a2520", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontFamily: "'DM Mono', monospace", letterSpacing: "2px", color: "#c44d2e", padding: "4px 10px" }}>
+                          DELETE
+                        </button>
+                      </div>
                     )}
 
                     <div style={{ display: "flex", gap: "6px", marginBottom: "14px", alignItems: "center" }}>
