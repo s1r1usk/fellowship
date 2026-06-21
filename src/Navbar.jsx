@@ -1,155 +1,88 @@
 import { useState } from "react"
 
-export default function Navbar({ setPage, user, onLogout }) {
-
+export default function Navbar({ setPage, user, onLogout, onNotifications, unreadCount }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
-  return (
-    <nav style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      backgroundColor: "#0a0908",
-      borderBottom: "1px solid #2a2520",
-      zIndex: 100
-    }}>
+  const links = ["HOME", "EXPLORE", "LEADERS", "CHALLENGES", "COLLECTIONS", "UPLOAD", "PROFILE"]
 
-      {/* Main bar */}
-      <div style={{
-        height: "60px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 20px"
-      }}>
+  return (
+    <nav style={{ position: "fixed", top: 0, left: 0, right: 0, backgroundColor: "#0a0908", borderBottom: "1px solid #2a2520", zIndex: 100 }}>
+      <div style={{ height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px" }}>
 
         {/* Logo */}
-        <div
-          onClick={function() { setPage("home"); setMenuOpen(false) }}
-          style={{
-            fontFamily: "'RingBearer', serif",
-            fontSize: "16px",
-            color: "#c9a84c",
-            letterSpacing: "2px",
-            cursor: "pointer",
-            whiteSpace: "nowrap"
-          }}
-        >
+        <div onClick={function() { setPage("home"); setMenuOpen(false) }}
+          style={{ fontFamily: "'RingBearer', serif", fontSize: "16px", color: "#c9a84c", letterSpacing: "2px", cursor: "pointer", whiteSpace: "nowrap" }}>
           The Fellowship
         </div>
 
         {/* Desktop links */}
-        <div style={{ display: "flex", gap: "24px", alignItems: "center" }} className="desktop-nav">
-          {["HOME", "EXPLORE", "LEADERS", "CHALLENGES", "UPLOAD", "PROFILE"].map(function(link) {
+        <div style={{ display: "flex", gap: "20px", alignItems: "center" }} className="desktop-nav">
+          {links.map(function(link) {
             return (
-              <button
-                key={link}
-                onClick={function() { setPage(link.toLowerCase()) }}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: "11px",
-                  letterSpacing: "2px",
-                  color: "#7a6f5e",
-                  padding: "0"
-                }}
+              <button key={link} onClick={function() { setPage(link.toLowerCase()) }}
+                style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "#7a6f5e", padding: "0" }}
                 onMouseEnter={function(e) { e.target.style.color = "#c9a84c" }}
-                onMouseLeave={function(e) { e.target.style.color = "#7a6f5e" }}
-              >
+                onMouseLeave={function(e) { e.target.style.color = "#7a6f5e" }}>
                 {link}
               </button>
             )
           })}
 
+          {/* Bell */}
           {user && (
-            <button
-              onClick={onLogout}
-              style={{
-                background: "none",
-                border: "1px solid #2a2520",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontFamily: "'DM Mono', monospace",
-                fontSize: "11px",
-                letterSpacing: "2px",
-                color: "#7a6f5e",
-                padding: "4px 12px"
-              }}
+            <button onClick={onNotifications} style={{ position: "relative", background: "none", border: "none", cursor: "pointer", fontSize: "16px", padding: "0", lineHeight: 1 }}>
+              🔔
+              {unreadCount > 0 && (
+                <span style={{ position: "absolute", top: "-4px", right: "-6px", backgroundColor: "#c44d2e", color: "#fff", borderRadius: "50%", width: "16px", height: "16px", fontSize: "9px", fontFamily: "'DM Mono', monospace", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {user && (
+            <button onClick={onLogout}
+              style={{ background: "none", border: "1px solid #2a2520", borderRadius: "4px", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "#7a6f5e", padding: "4px 12px" }}
               onMouseEnter={function(e) { e.target.style.color = "#c44d2e"; e.target.style.borderColor = "#c44d2e" }}
-              onMouseLeave={function(e) { e.target.style.color = "#7a6f5e"; e.target.style.borderColor = "#2a2520" }}
-            >
+              onMouseLeave={function(e) { e.target.style.color = "#7a6f5e"; e.target.style.borderColor = "#2a2520" }}>
               LOGOUT
             </button>
           )}
         </div>
 
-        {/* Hamburger — mobile only */}
-        <button
-          onClick={function() { setMenuOpen(!menuOpen) }}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "#c9a84c",
-            fontSize: "20px",
-            padding: "0",
-            display: "none"
-          }}
-          className="hamburger"
-        >
-          {menuOpen ? "✕" : "☰"}
-        </button>
-
+        {/* Hamburger */}
+        <div style={{ display: "none", alignItems: "center", gap: "12px" }} className="hamburger-area">
+          {user && (
+            <button onClick={onNotifications} style={{ position: "relative", background: "none", border: "none", cursor: "pointer", fontSize: "16px", padding: "0" }}>
+              🔔
+              {unreadCount > 0 && (
+                <span style={{ position: "absolute", top: "-4px", right: "-6px", backgroundColor: "#c44d2e", color: "#fff", borderRadius: "50%", width: "16px", height: "16px", fontSize: "9px", fontFamily: "'DM Mono', monospace", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+          )}
+          <button onClick={function() { setMenuOpen(!menuOpen) }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#c9a84c", fontSize: "20px", padding: "0" }}>
+            {menuOpen ? "✕" : "☰"}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div style={{
-          borderTop: "1px solid #2a2520",
-          padding: "16px 20px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "16px"
-        }}>
-          {["HOME", "EXPLORE", "LEADERS", "CHALLENGES", "UPLOAD", "PROFILE"].map(function(link) {
+        <div style={{ borderTop: "1px solid #2a2520", padding: "16px 20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+          {links.map(function(link) {
             return (
-              <button
-                key={link}
-                onClick={function() { setPage(link.toLowerCase()); setMenuOpen(false) }}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: "13px",
-                  letterSpacing: "2px",
-                  color: "#7a6f5e",
-                  padding: "0",
-                  textAlign: "left"
-                }}
-              >
+              <button key={link} onClick={function() { setPage(link.toLowerCase()); setMenuOpen(false) }}
+                style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "13px", letterSpacing: "2px", color: "#7a6f5e", padding: "0", textAlign: "left" }}>
                 {link}
               </button>
             )
           })}
           {user && (
-            <button
-              onClick={function() { onLogout(); setMenuOpen(false) }}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontFamily: "'DM Mono', monospace",
-                fontSize: "13px",
-                letterSpacing: "2px",
-                color: "#c44d2e",
-                padding: "0",
-                textAlign: "left"
-              }}
-            >
+            <button onClick={function() { onLogout(); setMenuOpen(false) }}
+              style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: "13px", letterSpacing: "2px", color: "#c44d2e", padding: "0", textAlign: "left" }}>
               LOGOUT
             </button>
           )}
@@ -157,12 +90,11 @@ export default function Navbar({ setPage, user, onLogout }) {
       )}
 
       <style>{`
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
           .desktop-nav { display: none !important; }
-          .hamburger { display: block !important; }
+          .hamburger-area { display: flex !important; }
         }
       `}</style>
-
     </nav>
   )
 }

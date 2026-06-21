@@ -13,13 +13,6 @@ import Profile from "./Profile"
 import UserProfile from "./UserProfile"
 import ExplorePage from "./ExplorePage"
 import LikesModal from "./LikesModal"
-import ShareModal from "./ShareModal"
-import LeaderboardPage from "./LeaderboardPage"
-import ChallengesPage from "./ChallengesPage"
-import CollectionsPage from "./CollectionsPage"
-import SaveModal from "./SaveModal"
-import NotificationsPanel from "./NotificationsPanel"
-import AdminPanel from "./AdminPanel"
 
 const CATEGORIES = ["ALL", "LANDSCAPE", "PORTRAIT", "ABSTRACT", "STREET", "MACRO", "ASTROPHOTOGRAPHY", "ARCHITECTURE", "WILDLIFE"]
 
@@ -39,10 +32,6 @@ export default function App() {
   const [openGear, setOpenGear] = useState({})
   const [viewingUser, setViewingUser] = useState(null)
   const [likesModal, setLikesModal] = useState(null)
-  const [sharePost, setSharePost] = useState(null)
-  const [savePost, setSavePost] = useState(null)
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [unreadCount, setUnreadCount] = useState(0)
   const [critiquePost, setCritiquePost] = useState(null)
   const [profile, setProfile] = useState(null)
 
@@ -83,19 +72,8 @@ export default function App() {
       tryFinish()
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async function(event, session) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(function(event, session) {
       setUser(session?.user ?? null)
-      // Create profile on first sign-in (handles email-confirmation flow)
-      if ((event === "SIGNED_IN" || event === "USER_UPDATED") && session?.user) {
-        const username = session.user.user_metadata?.username
-        if (username) {
-          // Upsert so it's safe to call multiple times
-          await supabase.from("profiles").upsert(
-            { id: session.user.id, username },
-            { onConflict: "id", ignoreDuplicates: true }
-          )
-        }
-      }
     })
 
     return function() { subscription.unsubscribe() }
@@ -104,7 +82,7 @@ export default function App() {
   async function fetchPosts() {
     const { data, error } = await supabase
       .from("photos")
-      .select("*, profiles!photos_user_id_fkey(username, verified)")
+      .select("*, profiles!photos_user_id_fkey(username)")
       .order("created_at", { ascending: false })
 
     if (error) { console.log(error); return }
@@ -136,7 +114,6 @@ export default function App() {
       return {
         id: photo.id,
         user: photo.profiles?.username || "unknown",
-        verified: photo.profiles?.verified || false,
         caption: photo.caption,
         category: photo.category,
         image_url: photo.image_url,
@@ -145,7 +122,6 @@ export default function App() {
         liked: likedIds.has(photo.id),
         comments: [],
         gear: photo.gear || null,
-        exif: photo.exif || null,
       }
     })
 
@@ -153,11 +129,7 @@ export default function App() {
   }
 
   useEffect(function() {
-    if (user) {
-      fetchPosts()
-      supabase.from("notifications").select("id", { count: "exact" }).eq("user_id", user.id).eq("read", false)
-        .then(function({ count }) { setUnreadCount(count || 0) })
-    }
+    if (user) fetchPosts()
   }, [user])
 
   const filteredPosts = activeCategory === "ALL"
@@ -180,14 +152,6 @@ export default function App() {
         if (p.id === id) return { ...p, likes: p.likes + 1, liked: true }
         return p
       }))
-      // Notify post owner
-      const post = posts.find(function(p) { return p.id === id })
-      if (post) {
-        const { data: owner } = await supabase.from("photos").select("user_id").eq("id", id).single()
-        if (owner && owner.user_id !== user.id) {
-          await supabase.from("notifications").insert({ user_id: owner.user_id, from_user_id: user.id, type: "like", photo_id: id })
-        }
-      }
     }
   }
 
@@ -233,17 +197,29 @@ export default function App() {
         return post
       }))
       setCommentInputs({ ...commentInputs, [id]: "" })
-      // Notify post owner
-      const { data: owner } = await supabase.from("photos").select("user_id").eq("id", id).single()
-      if (owner && owner.user_id !== user.id) {
-        await supabase.from("notifications").insert({ user_id: owner.user_id, from_user_id: user.id, type: "comment", photo_id: id })
-      }
     }
   }
 
-  function handleShare(post) {
-    console.log("handleShare called", post)
-    setSharePost(post)
+  async function handleShare(post) {
+    const shareText = "Hey, check out this post by @" + post.user + " on The Fellowship!\n\n\"" + post.caption + "\""
+    try {
+      const response = await fetch(post.image_url)
+      const blob = await response.blob()
+      const file = new File([blob], "fellowship-photo.jpg", { type: blob.type })
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ text: shareText, files: [file] })
+      } else if (navigator.share) {
+        await navigator.share({ text: shareText, url: window.location.href })
+      } else {
+        await navigator.clipboard.writeText(shareText + "\n" + window.location.href)
+        alert("Copied to clipboard!")
+      }
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        navigator.clipboard.writeText(shareText)
+        alert("Copied to clipboard!")
+      }
+    }
   }
 
   async function handleEditSubmit(editSuggestion) {
@@ -312,22 +288,6 @@ export default function App() {
     />
   )
 
-  if (page === "leaders") return (
-    <LeaderboardPage setPage={setPage} setViewingUser={setViewingUser} />
-  )
-
-  if (page === "challenges") return (
-    <ChallengesPage user={user} setViewingUser={setViewingUser} setPage={setPage} />
-  )
-
-  if (page === "collections") return (
-    <CollectionsPage user={user} setPage={setPage} />
-  )
-
-  if (page === "admin") return (
-    <AdminPanel user={user} setPage={setPage} />
-  )
-
   if (categoryPage) return (
     <CategoryPage
       category={categoryPage}
@@ -342,19 +302,10 @@ export default function App() {
 
   return (
     <div style={{ background: "linear-gradient(180deg, #1a1714 0%, #161411 100%)", minHeight: "100vh" }}>
-      <Navbar setPage={function(p) { setPage(p); setCategoryPage(null); setViewingUser(null) }} onLogout={handleLogout} user={user} onNotifications={function() { setShowNotifications(true) }} unreadCount={unreadCount} />
+      <Navbar setPage={function(p) { setPage(p); setCategoryPage(null); setViewingUser(null) }} onLogout={handleLogout} user={user} />
 
       {likesModal && (
         <LikesModal photoId={likesModal} onClose={function() { setLikesModal(null) }} setViewingUser={setViewingUser} />
-      )}
-      {sharePost && (
-        <ShareModal post={sharePost} onClose={function() { setSharePost(null) }} />
-      )}
-      {savePost && (
-        <SaveModal post={savePost} user={user} onClose={function() { setSavePost(null) }} />
-      )}
-      {showNotifications && (
-        <NotificationsPanel user={user} onClose={function() { setShowNotifications(false); setUnreadCount(0) }} setViewingUser={setViewingUser} setPage={setPage} />
       )}
 
       {critiquePost && (
@@ -430,15 +381,6 @@ export default function App() {
                     <p onClick={function() { setViewingUser(post.user) }}
                       style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "#c8a95d", marginBottom: "6px", cursor: "pointer" }}>
                       @{post.user.toUpperCase()}
-                      {post.verified && (
-                        <span title="Verified — Council of Photographers" style={{
-                          display: "inline-flex", alignItems: "center", justifyContent: "center",
-                          width: "16px", height: "16px", borderRadius: "50%",
-                          backgroundColor: "#c9a84c", color: "#0a0908",
-                          fontSize: "9px", fontWeight: "bold", marginLeft: "6px",
-                          verticalAlign: "middle", flexShrink: 0,
-                        }}>✦</span>
-                      )}
                     </p>
                     <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", color: "#c7bcaa", fontWeight: "300", marginBottom: "14px" }}>
                       {post.caption}
@@ -486,52 +428,6 @@ export default function App() {
                       </div>
                     )}
 
-                    {post.exif && (
-                      <div style={{ marginBottom: "12px" }}>
-                        <button
-                          onClick={function() { setOpenGear({ ...openGear, [`exif_${post.id}`]: !openGear[`exif_${post.id}`] }) }}
-                          style={{
-                            background: "none", border: "1px solid #2a2520", borderRadius: "4px",
-                            cursor: "pointer", fontSize: "10px", fontFamily: "'DM Mono', monospace",
-                            letterSpacing: "2px", color: "#c9a84c", padding: "4px 10px",
-                            display: "flex", alignItems: "center", gap: "6px"
-                          }}>
-                          ✦ EXIF {openGear[`exif_${post.id}`] ? "▲" : "▼"}
-                        </button>
-                        <AnimatePresence>
-                          {openGear[`exif_${post.id}`] && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              transition={{ duration: 0.2 }}
-                              style={{ overflow: "hidden" }}
-                            >
-                              <div style={{ marginTop: "8px", padding: "10px 12px", backgroundColor: "#141210", borderRadius: "4px", border: "1px solid #c9a84c22", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 16px" }}>
-                                {[
-                                  ["Camera", post.exif.Make && post.exif.Model ? `${post.exif.Make} ${post.exif.Model}` : null],
-                                  ["Lens", post.exif.LensModel || null],
-                                  ["Focal Length", post.exif.FocalLength ? `${post.exif.FocalLength}mm` : null],
-                                  ["Aperture", post.exif.FNumber ? `f/${post.exif.FNumber}` : null],
-                                  ["Shutter", post.exif.ExposureTime ? (post.exif.ExposureTime < 1 ? `1/${Math.round(1/post.exif.ExposureTime)}s` : `${post.exif.ExposureTime}s`) : null],
-                                  ["ISO", post.exif.ISO ? `ISO ${post.exif.ISO}` : null],
-                                  ["Resolution", post.exif.ImageWidth && post.exif.ImageHeight ? `${post.exif.ImageWidth} × ${post.exif.ImageHeight}` : null],
-                                  ["Date", post.exif.DateTimeOriginal ? new Date(post.exif.DateTimeOriginal).toLocaleDateString() : null],
-                                ].filter(function(r) { return r[1] }).map(function(r) {
-                                  return (
-                                    <div key={r[0]}>
-                                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", color: "#c9a84c", opacity: 0.6, letterSpacing: "0.1em", display: "block" }}>{r[0].toUpperCase()}</span>
-                                      <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "11px", color: "#a09080" }}>{r[1]}</span>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    )}
-
                     {/* Delete button */}
                     {post.user === profile?.username && (
                       <button
@@ -562,10 +458,6 @@ export default function App() {
                       <button onClick={function() { handleShare(post) }}
                         style={{ background: "none", border: "1px solid #2a2520", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontFamily: "'DM Mono', monospace", letterSpacing: "2px", color: "#9a8f80", padding: "6px 12px" }}>
                         SHARE
-                      </button>
-                      <button onClick={function() { setSavePost(post) }}
-                        style={{ background: "none", border: "1px solid #2a2520", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontFamily: "'DM Mono', monospace", letterSpacing: "2px", color: "#c9a84c", padding: "6px 12px" }}>
-                        🔖 SAVE
                       </button>
                       <button onClick={function() { setEditingPost(post) }}
                         style={{ background: "none", border: "1px solid #2a2520", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontFamily: "'DM Mono', monospace", letterSpacing: "2px", color: "#4c7ea8", padding: "6px 12px" }}>
