@@ -20,7 +20,8 @@ function timeLeft(deadline) {
 
 export default function ChallengesPage({ user, setViewingUser, setPage }) {
   const [challenges, setChallenges] = useState([])
-  const [selected, setSelected] = useState(null) // active challenge
+  const [selected, setSelected] = useState(null)
+  const [expandedId, setExpandedId] = useState(null)
   const [entries, setEntries] = useState([])
   const [userPosts, setUserPosts] = useState([])
   const [submitting, setSubmitting] = useState(false)
@@ -311,31 +312,30 @@ export default function ChallengesPage({ user, setViewingUser, setPage }) {
         <div style={{ maxWidth: "640px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "12px" }}>
           {challenges.map(function(challenge, i) {
             const active = new Date(challenge.deadline) > new Date()
+            const isExpanded = expandedId === challenge.id
             return (
               <motion.div key={challenge.id}
                 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                onClick={function() { loadChallenge(challenge) }}
                 style={{
-                  padding: "20px 24px", backgroundColor: S.surface,
-                  border: `1px solid ${active ? S.gold + "44" : S.border}`,
-                  borderRadius: "6px", cursor: "pointer", transition: "border-color 0.2s",
+                  backgroundColor: S.surface,
+                  border: `1px solid ${isExpanded ? S.gold + "88" : active ? S.gold + "44" : S.border}`,
+                  borderRadius: "6px", overflow: "hidden", transition: "border-color 0.2s",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
-                  <div>
+                {/* Card header — always visible */}
+                <div
+                  onClick={function() { setExpandedId(isExpanded ? null : challenge.id) }}
+                  style={{ padding: "20px 24px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}
+                >
+                  <div style={{ flex: 1 }}>
                     <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "0.15em", color: active ? S.gold : S.textMuted, opacity: 0.7, marginBottom: "6px" }}>
                       {active ? "● ACTIVE" : "○ ENDED"}
                     </p>
-                    <h2 style={{ fontFamily: "'RingBearer', serif", fontSize: "20px", color: S.textPrimary, fontWeight: "normal", margin: "0 0 8px" }}>
+                    <h2 style={{ fontFamily: "'RingBearer', serif", fontSize: "20px", color: S.textPrimary, fontWeight: "normal", margin: 0 }}>
                       {challenge.title}
                     </h2>
-                    {challenge.description && (
-                      <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "14px", color: S.textMuted, margin: 0, lineHeight: 1.5 }}>
-                        {challenge.description}
-                      </p>
-                    )}
                   </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px", flexShrink: 0 }}>
                     <span style={{
                       fontFamily: "'DM Mono', monospace", fontSize: "10px",
                       color: active ? S.gold : S.textMuted,
@@ -344,11 +344,87 @@ export default function ChallengesPage({ user, setViewingUser, setPage }) {
                     }}>
                       {timeLeft(challenge.deadline)}
                     </span>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", color: S.blue, letterSpacing: "0.08em" }}>
+                      {isExpanded ? "▲ COLLAPSE" : "▼ LEARN MORE"}
+                    </span>
                   </div>
                 </div>
-                <div style={{ marginTop: "14px", fontFamily: "'DM Mono', monospace", fontSize: "9px", color: S.blue, letterSpacing: "0.1em" }}>
-                  VIEW ENTRIES →
-                </div>
+
+                {/* Expanded detail panel */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25 }}
+                      style={{ overflow: "hidden" }}
+                    >
+                      <div style={{ borderTop: `1px solid ${S.border}`, padding: "20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+
+                        {/* What is the challenge */}
+                        {challenge.description && (
+                          <div>
+                            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "0.15em", color: S.gold, marginBottom: "8px" }}>THE CHALLENGE</p>
+                            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: "16px", color: S.textPrimary, lineHeight: 1.7, margin: 0 }}>
+                              {challenge.description}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* What to do */}
+                        <div>
+                          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", letterSpacing: "0.15em", color: S.gold, marginBottom: "10px" }}>HOW TO PARTICIPATE</p>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                            {[
+                              ["01", "Upload a photo that fits the theme from the Upload page"],
+                              ["02", "Return here and click \"Enter Challenge\" below"],
+                              ["03", "Select your photo from your gallery to submit it"],
+                              ["04", "The community votes with likes — most liked wins"],
+                            ].map(function([num, text]) {
+                              return (
+                                <div key={num} style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
+                                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", color: S.gold, opacity: 0.5, flexShrink: 0, paddingTop: "2px" }}>{num}</span>
+                                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", color: S.textMuted, lineHeight: 1.5 }}>{text}</span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Deadline */}
+                        <div style={{ display: "flex", gap: "24px", padding: "12px 16px", backgroundColor: S.bg, borderRadius: "4px", border: `1px solid ${S.border}` }}>
+                          <div>
+                            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", color: S.textMuted, letterSpacing: "0.1em", marginBottom: "3px" }}>DEADLINE</p>
+                            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", color: S.textPrimary, margin: 0 }}>
+                              {new Date(challenge.deadline).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            </p>
+                          </div>
+                          <div>
+                            <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "8px", color: S.textMuted, letterSpacing: "0.1em", marginBottom: "3px" }}>TIME LEFT</p>
+                            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", color: active ? S.gold : S.red, margin: 0 }}>
+                              {timeLeft(challenge.deadline)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* CTA buttons */}
+                        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                          <button
+                            onClick={function() { loadChallenge(challenge) }}
+                            style={{
+                              padding: "10px 24px", border: `1px solid ${S.gold}`, borderRadius: "3px",
+                              backgroundColor: `${S.gold}18`, color: S.gold,
+                              fontFamily: "'DM Mono', monospace", fontSize: "11px", letterSpacing: "0.15em",
+                              cursor: "pointer",
+                            }}>
+                            {active ? "✦ ENTER CHALLENGE" : "VIEW ENTRIES"}
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )
           })}
