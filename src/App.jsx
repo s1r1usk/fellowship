@@ -246,6 +246,14 @@ export default function App() {
     }
   }
 
+  async function handleDeleteComment(postId, commentId) {
+    await supabase.from("comments").delete().eq("id", commentId)
+    setPosts(posts.map(function(p) {
+      if (p.id !== postId) return p
+      return { ...p, comments: p.comments.filter(function(c) { return c.id !== commentId }) }
+    }))
+  }
+
   function handleShare(post) {
     console.log("handleShare called", post)
     setSharePost(post)
@@ -686,9 +694,20 @@ export default function App() {
                         {post.comments.map(function(comment, i) {
                           return (
                             <div key={i} style={{ borderLeft: `2px solid ${comment.isEdit ? "#4c7ea8" : "#2a2520"}`, paddingLeft: "10px", marginBottom: "12px" }}>
-                              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", color: comment.isEdit ? "#4c7ea8" : "#c8a95d", letterSpacing: "1px" }}>
-                                {comment.isEdit ? "✏ EDIT SUGGESTION — " : ""}@{comment.user.toUpperCase()}
-                              </span>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", color: comment.isEdit ? "#4c7ea8" : "#c8a95d", letterSpacing: "1px" }}>
+                                  {comment.isEdit ? "✏ EDIT SUGGESTION — " : ""}@{comment.user.toUpperCase()}
+                                </span>
+                                {(comment.user === profile?.username || post.user === profile?.username) && (
+                                  <button onClick={function() { handleDeleteComment(post.id, comment.id) }}
+                                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: "11px", color: "#4a4035", padding: "0 2px", lineHeight: 1, transition: "color 0.15s" }}
+                                    title="Delete comment"
+                                    onMouseEnter={function(e) { e.currentTarget.style.color = "#c44d2e" }}
+                                    onMouseLeave={function(e) { e.currentTarget.style.color = "#4a4035" }}>
+                                    ✕
+                                  </button>
+                                )}
+                              </div>
                               {comment.isEdit && comment.edited_image_url ? (
                                 <div style={{ marginTop: "8px" }}>
                                   <img src={comment.edited_image_url} alt="Suggested edit"

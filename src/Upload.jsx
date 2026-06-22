@@ -6,6 +6,7 @@ import * as exifr from "exifr"
 const CATEGORIES = [
   "Landscape", "Portrait", "Street", "Wildlife", "Architecture",
   "Astrophotography", "Macro", "Travel", "Abstract", "Documentary",
+  "Food Art", "Raw", "Gathering",
 ]
 
 const S = {
