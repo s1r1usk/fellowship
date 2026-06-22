@@ -3,8 +3,6 @@ import CritiqueModal from "./CritiqueModal"
 import Navbar from "./Navbar"
 import Upload from "./Upload"
 import LoadingScreen from "./LoadingScreen"
-import EditModal from "./EditModal"
-import BeforeAfter from "./BeforeAfter"
 import CategoryPage from "./CategoryPage"
 import Auth from "./Auth"
 import { supabase } from "./supabase"
@@ -28,9 +26,9 @@ export default function App() {
 
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState("ALL")
+  const [searchQuery, setSearchQuery] = useState("")
   const [revealedNsfw, setRevealedNsfw] = useState({})
   const [page, setPage] = useState("home")
-  const [editingPost, setEditingPost] = useState(null)
   const [categoryPage, setCategoryPage] = useState(null)
   const [user, setUser] = useState(null)
   const [authChecked, setAuthChecked] = useState(false)
@@ -165,9 +163,18 @@ export default function App() {
     }
   }, [user])
 
-  const filteredPosts = activeCategory === "ALL"
-    ? posts
-    : posts.filter(function(post) { return post.category?.toUpperCase() === activeCategory.toUpperCase() })
+  const filteredPosts = posts
+    .filter(function(post) { return activeCategory === "ALL" || post.category?.toUpperCase() === activeCategory.toUpperCase() })
+    .filter(function(post) {
+      if (!searchQuery.trim()) return true
+      const q = searchQuery.toLowerCase()
+      return (
+        post.caption?.toLowerCase().includes(q) ||
+        post.user?.toLowerCase().includes(q) ||
+        post.category?.toLowerCase().includes(q) ||
+        (post.tags || []).some(function(t) { return t.toLowerCase().includes(q) })
+      )
+    })
 
   async function handleLike(id) {
     const post = posts.find(function(p) { return p.id === id })
@@ -418,15 +425,21 @@ export default function App() {
       {likesModal && (
         <LikesModal photoId={likesModal} onClose={function() { setLikesModal(null) }} setViewingUser={setViewingUser} />
       )}
-      {sharePost && (
-        <ShareModal post={sharePost} onClose={function() { setSharePost(null) }} />
-      )}
-      {savePost && (
-        <SaveModal post={savePost} user={user} onClose={function() { setSavePost(null) }} />
-      )}
-      {showNotifications && (
-        <NotificationsPanel user={user} onClose={function() { setShowNotifications(false); setUnreadCount(0) }} setViewingUser={setViewingUser} setPage={setPage} />
-      )}
+      <AnimatePresence>
+        {sharePost && (
+          <ShareModal post={sharePost} onClose={function() { setSharePost(null) }} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {savePost && (
+          <SaveModal post={savePost} user={user} onClose={function() { setSavePost(null) }} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showNotifications && (
+          <NotificationsPanel user={user} onClose={function() { setShowNotifications(false); setUnreadCount(0) }} setViewingUser={setViewingUser} setPage={setPage} />
+        )}
+      </AnimatePresence>
       {editorPost && (
         <PhotoEditor imageUrl={editorPost.image_url} onSave={handleEditorSave} onClose={function() { setEditorPost(null) }} saving={editorSaving} mode="save" />
       )}
@@ -448,12 +461,27 @@ export default function App() {
           style={{ padding: "32px", paddingTop: "80px" }}
         >
 
-          {editingPost && (
-            <EditModal post={editingPost} onClose={function() { setEditingPost(null) }} onSubmit={handleEditSubmit} />
-          )}
+          {/* Search */}
+          <div style={{ position: "relative", marginBottom: "16px" }}>
+            <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#7a6e62", fontSize: "14px", pointerEvents: "none" }}>🔍</span>
+            <input
+              value={searchQuery}
+              onChange={function(e) { setSearchQuery(e.target.value) }}
+              placeholder="Search by caption, user, category or tag…"
+              style={{ width: "100%", boxSizing: "border-box", padding: "10px 14px 10px 38px", backgroundColor: "#141210", border: "1px solid #2a2520", borderRadius: "6px", color: "#e8dcc8", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", outline: "none" }}
+              onFocus={function(e) { e.target.style.borderColor = "#c9a84c" }}
+              onBlur={function(e) { e.target.style.borderColor = "#2a2520" }}
+            />
+            {searchQuery && (
+              <button onClick={function() { setSearchQuery("") }}
+                style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#7a6e62", fontSize: "14px", padding: 0 }}>
+                ✕
+              </button>
+            )}
+          </div>
 
           {/* Category Menu */}
-          <div style={{ display: "flex", gap: "8px", marginBottom: "36px", paddingBottom: "24px", borderBottom: "1px solid #2a2520", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <div style={{ display: "flex", gap: "6px", marginBottom: "36px", paddingBottom: "24px", borderBottom: "1px solid #2a2520", overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none", paddingLeft: "2px", paddingRight: "2px" }}>
             {CATEGORIES.map(function(cat) {
               return (
                 <button key={cat} onClick={function() { handleCategoryClick(cat) }}
