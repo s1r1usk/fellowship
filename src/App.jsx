@@ -22,7 +22,7 @@ import NotificationsPanel from "./NotificationsPanel"
 import AdminPanel from "./AdminPanel"
 import PhotoEditor from "./PhotoEditor"
 
-const CATEGORIES = ["ALL", "LANDSCAPE", "PORTRAIT", "ABSTRACT", "STREET", "MACRO", "ASTROPHOTOGRAPHY", "ARCHITECTURE", "WILDLIFE"]
+const CATEGORIES = ["ALL", "LANDSCAPE", "PORTRAIT", "ABSTRACT", "STREET", "MACRO", "ASTROPHOTOGRAPHY", "ARCHITECTURE", "WILDLIFE", "DOCUMENTARY", "TRAVEL", "FOOD ART", "RAW", "GATHERING"]
 
 export default function App() {
 
