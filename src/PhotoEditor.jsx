@@ -140,7 +140,7 @@ export default function PhotoEditor({ imageUrl, onSave, onClose, saving, mode = 
   }
 
   function handleCropMouseDown(e) {
-    if (cropRatio === null && activeTab !== "crop") return
+    if (activeTab !== "crop") return
     const pos = getCanvasCoords(e)
     setDragging(true)
     setDragStart(pos)
@@ -165,6 +165,22 @@ export default function PhotoEditor({ imageUrl, onSave, onClose, saving, mode = 
   }
 
   function handleCropMouseUp() { setDragging(false) }
+
+  useEffect(function() {
+    const canvas = canvasRef.current
+    if (!canvas || activeTab !== "crop") return
+    function onTouchStart(e) { e.preventDefault(); handleCropMouseDown(e) }
+    function onTouchMove(e) { e.preventDefault(); handleCropMouseMove(e) }
+    function onTouchEnd(e) { e.preventDefault(); handleCropMouseUp() }
+    canvas.addEventListener("touchstart", onTouchStart, { passive: false })
+    canvas.addEventListener("touchmove", onTouchMove, { passive: false })
+    canvas.addEventListener("touchend", onTouchEnd, { passive: false })
+    return function() {
+      canvas.removeEventListener("touchstart", onTouchStart)
+      canvas.removeEventListener("touchmove", onTouchMove)
+      canvas.removeEventListener("touchend", onTouchEnd)
+    }
+  }, [activeTab, dragging, dragStart, cropRatio, canvasSize])
 
   function applyPreset(i) { setActivePreset(i); setEdits({ ...PRESETS[i].values }) }
   function updateSlider(key, val) { setActivePreset(-1); setEdits(function(p) { return { ...p, [key]: Number(val) } }) }
@@ -222,9 +238,7 @@ export default function PhotoEditor({ imageUrl, onSave, onClose, saving, mode = 
               onMouseDown={activeTab === "crop" ? handleCropMouseDown : undefined}
               onMouseMove={activeTab === "crop" ? handleCropMouseMove : undefined}
               onMouseUp={activeTab === "crop" ? handleCropMouseUp : undefined}
-              onTouchStart={activeTab === "crop" ? function(e) { e.preventDefault(); handleCropMouseDown(e) } : undefined}
-              onTouchMove={activeTab === "crop" ? function(e) { e.preventDefault(); handleCropMouseMove(e) } : undefined}
-              onTouchEnd={activeTab === "crop" ? function(e) { e.preventDefault(); handleCropMouseUp() } : undefined}
+
               style={{
                 maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block",
                 cursor: activeTab === "crop" ? "crosshair" : "default",
