@@ -19,6 +19,7 @@ import SaveModal from "./SaveModal"
 import NotificationsPanel from "./NotificationsPanel"
 import AdminPanel from "./AdminPanel"
 import PhotoEditor from "./PhotoEditor"
+import PostLightbox from "./PostLightbox"
 
 const CATEGORIES = ["ALL", "LANDSCAPE", "PORTRAIT", "ABSTRACT", "STREET", "MACRO", "ASTROPHOTOGRAPHY", "ARCHITECTURE", "WILDLIFE", "DOCUMENTARY", "TRAVEL", "FOOD ART", "RAW", "GATHERING"]
 
@@ -44,8 +45,10 @@ export default function App() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [editorPost, setEditorPost] = useState(null)
   const [editorSaving, setEditorSaving] = useState(false)
+  const [viewingPost, setViewingPost] = useState(null)
   const [suggestEditorPost, setSuggestEditorPost] = useState(null)
   const [suggestEditorSaving, setSuggestEditorSaving] = useState(false)
+  const [lightboxPost, setLightboxPost] = useState(null)
   const [critiquePost, setCritiquePost] = useState(null)
   const [profile, setProfile] = useState(null)
 
@@ -107,7 +110,7 @@ export default function App() {
   async function fetchPosts() {
     const { data, error } = await supabase
       .from("photos")
-      .select("*, profiles!photos_user_id_fkey(username, verified)")
+      .select("*, profiles!photos_user_id_fkey(username, verified, avatar_url)")
       .order("created_at", { ascending: false })
 
     if (error) { console.log(error); return }
@@ -140,6 +143,7 @@ export default function App() {
         id: photo.id,
         user: photo.profiles?.username || "unknown",
         verified: photo.profiles?.verified || false,
+        avatar_url: photo.profiles?.avatar_url || null,
         caption: photo.caption,
         category: photo.category,
         image_url: photo.image_url,
@@ -426,7 +430,22 @@ export default function App() {
         <LikesModal photoId={likesModal} onClose={function() { setLikesModal(null) }} setViewingUser={setViewingUser} />
       )}
       <AnimatePresence>
-        {sharePost && (
+        {viewingPost && (
+          <PostLightbox
+            post={viewingPost}
+            onClose={function() { setViewingPost(null) }}
+            onLike={handleLike}
+            onNext={function() {
+              const idx = filteredPosts.findIndex(function(p) { return p.id === viewingPost.id })
+              if (idx < filteredPosts.length - 1) setViewingPost(filteredPosts[idx + 1])
+            }}
+            onPrev={function() {
+              const idx = filteredPosts.findIndex(function(p) { return p.id === viewingPost.id })
+              if (idx > 0) setViewingPost(filteredPosts[idx - 1])
+            }}
+          />
+        )}
+      </AnimatePresence>
           <ShareModal post={sharePost} onClose={function() { setSharePost(null) }} />
         )}
       </AnimatePresence>
@@ -501,9 +520,30 @@ export default function App() {
           </div>
 
           {filteredPosts.length === 0 && (
-            <div style={{ textAlign: "center", padding: "60px 0" }}>
-              <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "20px", fontStyle: "italic", color: "#9a8f80" }}>No photos found</p>
-              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "2px", color: "#4a4035", marginTop: "8px" }}>NOT ALL THOSE WHO WANDER ARE LOST</p>
+            <div style={{ textAlign: "center", padding: "80px 24px" }}>
+              {searchQuery ? (
+                <>
+                  <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "22px", fontStyle: "italic", color: "#9a8f80", marginBottom: "8px" }}>No results for "{searchQuery}"</p>
+                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "2px", color: "#4a4035" }}>TRY ANOTHER SEARCH</p>
+                </>
+              ) : posts.length === 0 ? (
+                <>
+                  <p style={{ fontFamily: "'RingBearer', serif", fontSize: "28px", color: "#c9a84c", marginBottom: "12px" }}>The Archives Await</p>
+                  <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "17px", fontStyle: "italic", color: "#9a8f80", marginBottom: "24px" }}>
+                    "Even the smallest person can change the course of the future."
+                  </p>
+                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "2px", color: "#4a4035", marginBottom: "24px" }}>BE THE FIRST TO SHARE YOUR VISION</p>
+                  <button onClick={function() { setPage("upload") }}
+                    style={{ padding: "12px 28px", border: "1px solid #c9a84c", borderRadius: "3px", backgroundColor: "#c9a84c18", color: "#c9a84c", fontFamily: "'DM Mono', monospace", fontSize: "11px", letterSpacing: "0.15em", cursor: "pointer" }}>
+                    ✦ UPLOAD YOUR FIRST PHOTO
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "20px", fontStyle: "italic", color: "#9a8f80", marginBottom: "8px" }}>No photos in this category</p>
+                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "2px", color: "#4a4035" }}>NOT ALL THOSE WHO WANDER ARE LOST</p>
+                </>
+              )}
             </div>
           )}
 
@@ -516,7 +556,8 @@ export default function App() {
                     <img
                       src={post.image_url || "https://picsum.photos/320/240?random=" + post.id}
                       alt="photo"
-                      style={{ width: "100%", display: "block", filter: post.nsfw && !revealedNsfw[post.id] ? "blur(20px)" : "none", transition: "filter 0.3s" }}
+                      onClick={function() { if (!post.nsfw || revealedNsfw[post.id]) setViewingPost(post) }}
+                      style={{ width: "100%", display: "block", filter: post.nsfw && !revealedNsfw[post.id] ? "blur(20px)" : "none", transition: "filter 0.3s", cursor: post.nsfw && !revealedNsfw[post.id] ? "default" : "zoom-in" }}
                     />
                     {post.nsfw && !revealedNsfw[post.id] && (
                       <div onClick={function() { setRevealedNsfw({ ...revealedNsfw, [post.id]: true }) }}
@@ -528,23 +569,24 @@ export default function App() {
                   </div>
 
                   <div style={{ padding: "16px" }}>
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "2px", color: "#4c7ea8", marginBottom: "4px", cursor: "pointer" }}
+                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "2px", color: "#4c7ea8", marginBottom: "6px", cursor: "pointer" }}
                       onClick={function() { handleCategoryClick(post.category) }}>
                       {post.category}
                     </p>
-                    <p onClick={function() { setViewingUser(post.user) }}
-                      style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "#c8a95d", marginBottom: "6px", cursor: "pointer" }}>
-                      @{post.user.toUpperCase()}
-                      {post.verified && (
-                        <span title="Verified — Council of Photographers" style={{
-                          display: "inline-flex", alignItems: "center", justifyContent: "center",
-                          width: "16px", height: "16px", borderRadius: "50%",
-                          backgroundColor: "#c9a84c", color: "#0a0908",
-                          fontSize: "9px", fontWeight: "bold", marginLeft: "6px",
-                          verticalAlign: "middle", flexShrink: 0,
-                        }}>✦</span>
+                    <div onClick={function() { setViewingUser(post.user) }}
+                      style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", cursor: "pointer" }}>
+                      {post.avatar_url ? (
+                        <img src={post.avatar_url} alt={post.user}
+                          style={{ width: "28px", height: "28px", borderRadius: "50%", objectFit: "cover", border: "1px solid #2a2520", flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: "28px", height: "28px", borderRadius: "50%", backgroundColor: "#2a2520", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", color: "#c9a84c" }}>{post.user[0]?.toUpperCase()}</span>
+                        </div>
                       )}
-                    </p>
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "#c8a95d" }}>
+                        @{post.user.toUpperCase()}
+                      </span>
+                    </div>
                     <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", color: "#c7bcaa", fontWeight: "300", marginBottom: "14px" }}>
                       {post.caption}
                     </p>
