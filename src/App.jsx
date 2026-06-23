@@ -3,6 +3,7 @@ import CritiqueModal from "./CritiqueModal"
 import Navbar from "./Navbar"
 import Upload from "./Upload"
 import LoadingScreen from "./LoadingScreen"
+import BeforeAfter from "./BeforeAfter"
 import CategoryPage from "./CategoryPage"
 import Auth from "./Auth"
 import { supabase } from "./supabase"
@@ -781,8 +782,7 @@ export default function App() {
                               </div>
                               {comment.isEdit && comment.edited_image_url ? (
                                 <div style={{ marginTop: "8px" }}>
-                                  <img src={comment.edited_image_url} alt="Suggested edit"
-                                    style={{ width: "100%", borderRadius: "4px", border: "1px solid #2a2520", display: "block", marginBottom: "8px" }} />
+                                  <BeforeAfter beforeUrl={post.image_url} afterUrl={comment.edited_image_url} />
                                   {post.user === profile?.username && (
                                     <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                                       <button
