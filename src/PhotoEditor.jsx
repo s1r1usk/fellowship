@@ -222,9 +222,9 @@ export default function PhotoEditor({ imageUrl, onSave, onClose, saving, mode = 
               onMouseDown={activeTab === "crop" ? handleCropMouseDown : undefined}
               onMouseMove={activeTab === "crop" ? handleCropMouseMove : undefined}
               onMouseUp={activeTab === "crop" ? handleCropMouseUp : undefined}
-              onTouchStart={activeTab === "crop" ? handleCropMouseDown : undefined}
-              onTouchMove={activeTab === "crop" ? handleCropMouseMove : undefined}
-              onTouchEnd={activeTab === "crop" ? handleCropMouseUp : undefined}
+              onTouchStart={activeTab === "crop" ? function(e) { e.preventDefault(); handleCropMouseDown(e) } : undefined}
+              onTouchMove={activeTab === "crop" ? function(e) { e.preventDefault(); handleCropMouseMove(e) } : undefined}
+              onTouchEnd={activeTab === "crop" ? function(e) { e.preventDefault(); handleCropMouseUp() } : undefined}
               style={{
                 maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block",
                 cursor: activeTab === "crop" ? "crosshair" : "default",

@@ -48,7 +48,6 @@ export default function App() {
   const [viewingPost, setViewingPost] = useState(null)
   const [suggestEditorPost, setSuggestEditorPost] = useState(null)
   const [suggestEditorSaving, setSuggestEditorSaving] = useState(false)
-  const [lightboxPost, setLightboxPost] = useState(null)
   const [critiquePost, setCritiquePost] = useState(null)
   const [profile, setProfile] = useState(null)
 

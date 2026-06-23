@@ -82,6 +82,12 @@ export default function UserProfile({ username, currentUser, setPage, onLogout, 
         follower_id: currentUser.id,
         following_id: profile.id
       })
+      await supabase.from("notifications").insert({
+        user_id: profile.id,
+        from_user_id: currentUser.id,
+        type: "follow",
+        photo_id: null
+      })
       setIsFollowing(true)
       setFollowers(followers + 1)
     }
