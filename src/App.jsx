@@ -446,6 +446,8 @@ export default function App() {
           />
         )}
       </AnimatePresence>
+      <AnimatePresence>
+        {sharePost && (
           <ShareModal post={sharePost} onClose={function() { setSharePost(null) }} />
         )}
       </AnimatePresence>
